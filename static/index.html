@@ -3,222 +3,150 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#C97D5B">
+<link rel="manifest" href="/manifest.json">
 <title>每日绘 Craft</title>
-<style>
-  /* ── Reset & Base ── */
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-    background:#faf8f5;color:#2c2c2c;line-height:1.6;
-    padding:0 0 80px 0;min-height:100vh;
-  }
-
-  /* ── Header ── */
-  .header{
-    text-align:center;padding:28px 16px 8px;
-    background:linear-gradient(180deg,#faf8f5 60%,transparent);
-  }
-  .header h1{font-size:22px;font-weight:700;letter-spacing:1px;color:#2c2c2c;}
-  .header .sub{font-size:13px;color:#8a8a8a;margin-top:2px;}
-
-  /* ── Cards ── */
-  .card{
-    background:#fff;border-radius:16px;padding:20px;
-    margin:12px 16px;box-shadow:0 1px 4px rgba(0,0,0,.06);
-  }
-
-  /* ── Main Action ── */
-  .action-area{text-align:center;padding:20px 16px 8px;}
-  .last-drawing{position:relative;border-radius:12px;overflow:hidden;margin-bottom:12px;}
-  .last-drawing img{width:100%;display:block;border-radius:12px;}
-  .last-drawing .label{
-    position:absolute;bottom:0;left:0;right:0;
-    background:linear-gradient(transparent,rgba(0,0,0,.6));
-    color:#fff;padding:20px 12px 8px;font-size:13px;text-align:left;
-  }
-  .btn{
-    display:block;width:100%;padding:16px;border:none;border-radius:14px;
-    font-size:17px;font-weight:600;cursor:pointer;text-align:center;
-    transition:all .2s;
-  }
-  .btn-primary{background:#5b7a6e;color:#fff;}
-  .btn-primary:active{background:#4a695e;transform:scale(.97);}
-  .btn-secondary{background:#f0ede8;color:#5b7a6e;}
-  .btn-secondary:active{background:#e5e1da;transform:scale(.97);}
-  .btn-upload{background:#e8e3dc;color:#5b7a6e;font-size:14px;padding:12px;margin-top:8px;}
-  .btn-upload:active{background:#ddd7ce;}
-
-  /* ── Feedback ── */
-  .feedback-section{display:none;}
-  .feedback-section.visible{display:block;}
-  .feedback-content{
-    margin-top:12px;white-space:pre-wrap;font-size:15px;line-height:1.8;
-  }
-  .feedback-content .praise{color:#3a7d5c;}
-  .feedback-content .improve{color:#b8684a;}
-  .feedback-content .encourage{color:#7a6e8a;}
-
-  /* ── Timeline ── */
-  .timeline{margin:12px 16px;}
-  .timeline h3{font-size:15px;color:#6a6a6a;margin-bottom:12px;font-weight:600;}
-  .timeline-item{
-    display:flex;gap:12px;padding:12px 0;
-    border-bottom:1px solid #f0ede8;
-  }
-  .timeline-item:last-child{border-bottom:none;}
-  .timeline-item .thumb{
-    width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;
-  }
-  .timeline-item .thumb img{width:100%;height:100%;object-fit:cover;}
-  .timeline-item .info{flex:1;min-width:0;}
-  .timeline-item .info .preview{
-    font-size:13px;color:#4a4a4a;
-    overflow:hidden;text-overflow:ellipsis;display:-webkit-box;
-    -webkit-line-clamp:2;-webkit-box-orient:vertical;
-  }
-  .timeline-item .info .time{font-size:11px;color:#9a9a9a;margin-top:4px;}
-  .timeline-empty{text-align:center;color:#aaa;font-size:14px;padding:30px 0;}
-
-  /* ── Spinner ── */
-  .spinner{display:none;text-align:center;padding:30px 0;}
-  .spinner.active{display:block;}
-  .spinner-dot{
-    display:inline-block;width:8px;height:8px;border-radius:50%;
-    background:#5b7a6e;margin:0 4px;
-    animation:bounce 1.2s infinite ease-in-out;
-  }
-  .spinner-dot:nth-child(2){animation-delay:.2s;}
-  .spinner-dot:nth-child(3){animation-delay:.4s;}
-  .spinner-text{font-size:13px;color:#8a8a8a;margin-top:8px;}
-  @keyframes bounce{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1.2)}}
-
-  /* ── Error ── */
-  .error{display:none;background:#fef2f0;border:1px solid #f5c6bb;border-radius:12px;padding:14px 16px;margin:12px 16px;font-size:14px;color:#a05040;}
-  .error.visible{display:block;}
-
-  /* ── Modal ── */
-  .modal-overlay{
-    display:none;position:fixed;top:0;left:0;right:0;bottom:0;
-    background:rgba(0,0,0,.7);z-index:100;
-    justify-content:center;align-items:center;padding:20px;
-  }
-  .modal-overlay.visible{display:flex;}
-  .modal{
-    background:#fff;border-radius:20px;max-width:500px;width:100%;
-    max-height:90vh;overflow-y:auto;padding:24px;
-  }
-  .modal img{width:100%;border-radius:12px;margin-bottom:16px;}
-  .modal .modal-feedback{font-size:15px;line-height:1.8;white-space:pre-wrap;color:#2c2c2c;}
-  .modal .modal-time{font-size:12px;color:#9a9a9a;margin-top:12px;}
-  .modal .modal-close{
-    display:block;width:100%;padding:12px;margin-top:16px;
-    border:none;border-radius:12px;background:#f0ede8;
-    font-size:15px;color:#5b7a6e;font-weight:600;cursor:pointer;text-align:center;
-  }
-  .modal .modal-close:active{background:#e5e1da;}
-
-  /* ── Helper ── */
-  .hidden{display:none!important;}
-  .text-center{text-align:center;}
-  .mt-8{margin-top:8px;}
-  .mt-12{margin-top:12px;}
-  .mb-6{margin-bottom:6px;}
-
-  /* ── Calendar ── */
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;}
-  .cal-weekday{font-size:11px;color:#9a9a9a;padding:6px 0;font-weight:600;}
-  .cal-day{padding:8px 2px;font-size:13px;border-radius:8px;cursor:pointer;position:relative;color:#2c2c2c;}
-  .cal-day.other-month{color:#ccc;}
-  .cal-day.today{background:#f0ede8;font-weight:700;}
-  .cal-day.has-drawing{color:#5b7a6e;font-weight:600;}
-  .cal-day .cal-dot{display:block;width:6px;height:6px;border-radius:50%;background:#5b7a6e;margin:2px auto 0;}
-  .cal-day:active{background:#e5e1da;}
-  .cal-day-detail-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #f0ede8;cursor:pointer;}
-  .cal-day-detail-item:last-child{border:none;}
-  .cal-day-detail-item .thumb{width:50px;height:50px;border-radius:8px;overflow:hidden;flex-shrink:0;}
-  .cal-day-detail-item .thumb img{width:100%;height:100%;object-fit:cover;}
-  .cal-day-detail-item .preview{font-size:13px;color:#4a4a4a;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-
-  /* ── Growth ── */
-  .grow-stat{padding:8px;flex:1;border-radius:10px;background:#faf8f5;}
-  .grow-stat .num{font-size:22px;font-weight:700;color:#5b7a6e;}
-  .grow-stat .lbl{font-size:11px;color:#8a8a8a;margin-top:2px;}
-  .chart-bar{
-    flex:1;border-radius:6px 6px 0 0;min-height:4px;
-    background:linear-gradient(180deg,#5b7a6e,#8fc0a8);
-    transition:height .4s;position:relative;
-  }
-  .chart-bar .bar-label{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:9px;color:#9a9a9a;}
-
-  /* ── Glossary Tooltip ── */
-  .glossary-term{
-    color:#5b7a6e;cursor:pointer;border-bottom:1px dashed #b0c4b8;font-weight:600;
-  }
-  .glossary-tip{
-    display:none;position:fixed;z-index:300;
-    background:#2c2c2c;color:#fff;font-size:14px;line-height:1.6;
-    padding:14px 18px;border-radius:14px;max-width:300px;
-    box-shadow:0 4px 20px rgba(0,0,0,.25);
-  }
-  .glossary-tip.visible{display:block;}
-  .glossary-tip .tip-word{font-weight:700;margin-right:6px;color:#8fc0a8;}
-
-  /* ── Bottom nav ── */
-  .bottom-nav{
-    position:fixed;bottom:0;left:0;right:0;
-    display:flex;background:#fff;border-top:1px solid #eee;
-    padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));
-  }
-  .bottom-nav button{
-    flex:1;border:none;background:none;padding:8px;font-size:12px;color:#8a8a8a;cursor:pointer;
-    display:flex;flex-direction:column;align-items:center;gap:2px;
-  }
-  .bottom-nav button .icon{font-size:20px;}
-  .bottom-nav button.active{color:#5b7a6e;font-weight:600;}
-
-  /* ── Page / Tab switching ── */
-  .page{display:none;}
-  .page.active{display:block;}
-</style>
+<link rel="stylesheet" href="static/css/style.css?v=20260730v19">
 </head>
 <body>
 
+<!-- ─── 过渡仪式（onboarding 完成后 → 首页） ─── -->
+<div id="ritualOverlay" class="ritual-overlay">
+  <div class="ritual-icon" id="ritualIcon">🎨</div>
+  <div class="ritual-title" id="ritualTitle">准备好了！</div>
+  <div class="ritual-desc" id="ritualDesc">小绘正在为你准备今日主题...</div>
+  <div class="ritual-loader"><span></span><span></span><span></span></div>
+</div>
+
+<!-- ─── Onboarding（全屏页面切换，非弹窗） ─── -->
+<div id="onboardingOverlay" class="onboarding-overlay">
+  <div class="onboarding">
+    <div class="ob-brand">
+      <div class="ob-brand-icon">✏️</div>
+      <div class="ob-brand-title">每日绘 Craft</div>
+      <div class="ob-brand-sub">手机 + 纸 + 笔 + AI 陪伴</div>
+    </div>
+    <div id="obContent" class="ob-content" style="text-align:center;"></div>
+    <div style="margin-top:var(--space-xl);text-align:center;font-size:12px;color:var(--color-text-tertiary);line-height:1.6;">
+      你的名字仅用于本地保存，不会上传到任何服务器。
+    </div>
+  </div>
+</div>
+
+<!-- Path Select removed in v3.0 — only creation mode -->
+
 <!-- ─── Header ─── -->
 <div class="header">
-  <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-    <h1 style="font-size:22px;font-weight:700;letter-spacing:1px;color:#2c2c2c;">✏️ 每日绘</h1>
-    <span id="userNameDisplay" onclick="setName()" style="font-size:12px;color:#8a8a8a;cursor:pointer;background:#f0ede8;padding:2px 10px;border-radius:10px;"></span>
+  <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+    <h1 onclick="switchTab('home')">✏️ 每日绘 <span class="logo-craft">Craft</span></h1>
+    <span id="userNameDisplay" style="display:none;"></span>
   </div>
-  <div class="sub" style="font-size:13px;color:#8a8a8a;margin-top:2px;">今天画点什么？</div>
-  <div id="streakDisplay" style="margin-top:6px;font-size:14px;font-weight:600;color:#5b7a6e;"></div>
 </div>
 
 <!-- ─── Page: Home ─── -->
 <div id="page-home" class="page active">
 
-  <!-- Last drawing preview -->
-  <div class="action-area">
-    <div id="lastDrawingContainer" class="hidden">
-      <div class="last-drawing">
-        <img id="lastDrawingImg" src="" alt="上次画作">
-        <div class="label">上次画的 ↑</div>
+  <!-- Greeting -->
+  <div class="greeting">
+    <div class="hi"><span id="greetingText">你好</span>，<span id="greetingName" class="name">小伙伴</span></div>
+    <div id="greetingRight" class="greeting-right">
+      <div id="streakBadge" class="streak-badge"></div>
+    </div>
+  </div>
+
+  <!-- 欢迎回来提示（仅老用户刷新/重新进入时显示） -->
+  <div id="welcomeBackBanner" class="welcome-back-banner hidden">
+    <div class="wb-icon">🎨</div>
+    <div class="wb-content">
+      <div class="wb-title" id="wbTitle"></div>
+      <div class="wb-quote" id="wbQuote"></div>
+    </div>
+  </div>
+
+  <!-- 今日主题卡片（对齐原型设计） -->
+  <div id="themeToday" class="theme-today card paper-layer">
+    <div class="theme-today-head">
+      <span class="theme-today-label">✨ 今日推荐</span>
+      <button class="theme-change-btn" id="themeChangeBtn" onclick="changeTodayTheme()">
+        <span class="change-icon">🔄</span> 换一换
+      </button>
+    </div>
+    <div class="theme-today-body">
+      <div class="theme-today-icon" id="themeTodayIcon">☕</div>
+      <div class="theme-today-info">
+        <div class="theme-today-title" id="themeTodayTitle">画一个杯子</div>
+        <div class="theme-today-hint" id="themeTodayHint">圆柱体加弧线把手，从最简单的形状开始</div>
+        <div class="theme-today-tags" id="themeTodayTags">
+          <span class="theme-tag easy">入门</span>
+          <span class="theme-tag cat">日常物品</span>
+        </div>
       </div>
-      <button class="btn btn-secondary" onclick="openCamera()">🔄 画新的</button>
     </div>
-    <div id="emptyState" class="card text-center" style="padding:40px 20px;">
-      <div style="font-size:36px;margin-bottom:12px;">🎨</div>
-      <p style="color:#6a6a6a;font-size:15px;">还没有画作记录</p>
-      <p style="color:#9a9a9a;font-size:13px;margin-top:4px;">拍下你的第一张画吧</p>
-      <button class="btn btn-primary mt-12" onclick="openCamera()">📸 开始画</button>
+    <button class="theme-start-btn" onclick="openCamera()">📸 开始画这个</button>
+  </div>
+
+  <!-- 主题库（难度分级 + 选择） -->
+  <div class="theme-library card paper-layer">
+    <div class="theme-library-head">
+      <span class="theme-library-title">🎨 主题库</span>
+      <span class="theme-library-sub">选一个想画的主题</span>
+    </div>
+    <!-- 难度 Tab -->
+    <div class="theme-tabs">
+      <button class="theme-tab active beginner" data-diff="beginner" onclick="switchThemeTab('beginner')">🌱 入门</button>
+      <button class="theme-tab intermediate" data-diff="intermediate" onclick="switchThemeTab('intermediate')">🖌️ 进阶</button>
+      <button class="theme-tab advanced" data-diff="advanced" onclick="switchThemeTab('advanced')">🏆 挑战</button>
+    </div>
+    <!-- 主题列表（由 JS 动态渲染） -->
+    <div id="themeGrid" class="theme-list"></div>
+    <div class="theme-library-footer">
+      点击主题可直接切换今日推荐
     </div>
   </div>
 
-  <!-- Upload button (always visible) -->
-  <div class="card text-center" style="padding:14px;">
-    <button class="btn btn-upload" onclick="openUpload()">从相册选择</button>
+  <!-- 引导文字（仅无画作记录时显示） -->
+  <div id="guideText" class="guide-text hidden">
+    <div class="guide-steps">在纸上画画 → 拍下来 → AI 给你画面建议</div>
+    <div class="guide-tips">
+      💡 拍照小提示：<br>
+      • 手机从正上方平行对准纸面，拍出来的画最清晰<br>
+      • 光线充足，不要让手或影子挡住画面<br>
+      • 画作尽量占满取景框，边缘不要留太多空白
+    </div>
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="showCompositionGuide()">📐 看看构图引导</button>
   </div>
 
-  <!-- Spinner -->
+  <!-- 底部小提示（填充空白） -->
+  <div class="home-tip-card card paper-layer">
+    <div class="home-tip-icon">💡</div>
+    <div class="home-tip-text">
+      <div class="home-tip-title">第一次画画？</div>
+      <div class="home-tip-desc">随便画就好，小绘不评价好坏，只陪你一起看画面</div>
+    </div>
+  </div>
+
+  <!-- ═══ 共享元素（两个模式都使用） ═══ -->
+
+  <!-- Preview + Upload -->
+  <div id="previewSection" class="card hidden" style="padding:14px;text-align:center;">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
+      <div id="previewWrap" class="preview-thumb">
+        <img id="previewImg" src="" alt="">
+      </div>
+      <div class="preview-label">拍照完成，准备提交</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button class="btn btn-secondary btn-sm" onclick="cancelPreview()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="submitDrawing()">📤 提交画作</button>
+    </div>
+  </div>
+
+  <!-- 拍照后的照片展示（提交后保留在顶部） -->
+  <div id="submittedPhoto" class="card hidden" style="padding:0;overflow:hidden;">
+    <img id="submittedPhotoImg" src="" alt="我的画" style="width:100%;display:block;">
+  </div>
+
+  <!-- Spinner（旧版 Fallback） -->
   <div id="spinner" class="spinner">
     <span class="spinner-dot"></span>
     <span class="spinner-dot"></span>
@@ -226,63 +154,78 @@
     <div class="spinner-text">AI 正在看你的画...</div>
   </div>
 
-  <!-- Feedback -->
-  <div id="feedback" class="card feedback-section">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-      <span style="font-size:18px;">🤖</span>
-      <span id="aiName" style="font-size:14px;font-weight:600;color:#5b7a6e;"></span>
-      <span id="elapsedBadge" style="margin-left:auto;font-size:11px;color:#9a9a9a;background:#f0ede8;padding:2px 8px;border-radius:8px;"></span>
+  <!-- 等待陪伴动画（v3.1，替换 spinner） -->
+  <div id="waitingArea" class="waiting-area">
+    <!-- JS 动态填入等待文案 -->
+  </div>
+
+  <!-- Enhanced Feedback v3.1（5层结构 + 里程碑 + 深度指示器） -->
+  <div id="feedbackEnhanced" class="card feedback-section">
+    <div class="feedback-header">
+      <span class="avatar">🤖</span>
+      <span class="ai-name" id="aiNameEnhanced">小绘</span>
+      <span class="elapsed" id="elapsedBadgeEnhanced"></span>
     </div>
+    <div id="milestoneSlot"></div>
+    <div id="fbDepthLayer"></div>
+    <div id="fbLayersContainer"></div>
+  </div>
+
+  <!-- 反思交互 -->
+  <div id="reflectionArea" class="reflection-area">
+    <div class="reflection-prompt">
+      <div class="r-question">✍️ 这次画得最满意的地方是哪里？</div>
+      <div class="r-row">
+        <input class="r-input" id="reflectionInput" type="text" placeholder="说说这次画得最满意的地方" maxlength="200">
+        <button class="r-send" onclick="sendReflection()">记录</button>
+      </div>
+    </div>
+    <div id="reflectionResponse" class="reflection-response">
+      <div class="feedback-header">
+        <span class="avatar">🤖</span>
+        <span class="ai-name">小绘</span>
+      </div>
+      <div id="reflectionReply" class="feedback-content"></div>
+    </div>
+  </div>
+
+  <!-- 操作按钮（延迟出现） -->
+  <div id="fbActions" class="fb-actions">
+    <div class="fb-section-title">📌 接下来想做什么？</div>
+    <div class="action-btns" id="actionBtnsContainer"></div>
+  </div>
+
+  <!-- 旧版 Feedback（向后兼容） -->
+  <div id="feedback" class="card feedback-section">
+    <div class="feedback-header">
+      <span class="avatar">🤖</span>
+      <span id="aiName" class="ai-name"></span>
+      <span id="elapsedBadge" class="elapsed"></span>
+    </div>
+    <div id="milestoneSlotLegacy"></div>
     <div id="feedbackContent" class="feedback-content"></div>
   </div>
 
-  <!-- Share -->
-  <div id="shareSection" class="card feedback-section" style="padding:14px;text-align:center;">
-    <button class="btn btn-upload" onclick="generateShareImage()" style="font-size:14px;margin:0;">📤 生成分享图</button>
+  <!-- Next recommendation after feedback -->
+  <div id="nextRec" class="card feedback-section" style="padding:14px;">
+    <div class="next-rec-label">💡 下次试试</div>
+    <div id="nextRecText" class="next-rec-text"></div>
   </div>
+
+  <!-- Hidden inputs -->
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+  <input type="file" id="uploadInput" accept="image/*" style="display:none">
 
   <!-- Hidden Canvas for share image -->
   <canvas id="shareCanvas" style="display:none;"></canvas>
 
   <!-- Error -->
   <div id="error" class="error"></div>
-
-  <!-- Hidden camera input -->
-  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
-  <input type="file" id="uploadInput" accept="image/*" style="display:none">
 </div>
 
 <!-- ─── Page: Timeline ─── -->
 <div id="page-timeline" class="page">
-  <div id="timelineList" class="timeline"></div>
-</div>
-
-<!-- ─── Page: Calendar ─── -->
-<div id="page-calendar" class="page">
-  <div class="header" style="padding-bottom:4px;">
-    <div style="display:flex;align-items:center;justify-content:center;gap:20px;">
-      <button id="calPrev" style="border:none;background:none;font-size:24px;cursor:pointer;color:#5b7a6e;">‹</button>
-      <span id="calTitle" style="font-size:18px;font-weight:700;color:#2c2c2c;min-width:140px;"></span>
-      <button id="calNext" style="border:none;background:none;font-size:24px;cursor:pointer;color:#5b7a6e;">›</button>
-    </div>
-  </div>
-  <div id="calendarGrid" class="card" style="padding:12px 16px;"></div>
-  <div id="calDayDetail" class="card feedback-section" style="margin-top:0;">
-    <div id="calDayTitle" style="font-size:14px;font-weight:600;color:#5b7a6e;margin-bottom:8px;"></div>
-    <div id="calDayDrawings"></div>
-  </div>
-</div>
-
-<!-- ─── Page: Growth ─── -->
-<div id="page-growth" class="page">
-  <div class="header" style="padding-bottom:4px;">
-    <h1 style="font-size:20px;">📊 成长统计</h1>
-  </div>
-  <div id="growthStats" class="card" style="display:flex;gap:8px;padding:16px;text-align:center;"></div>
-  <div id="growthChart" class="card" style="padding:16px;">
-    <h3 style="font-size:14px;color:#6a6a6a;margin-bottom:10px;">每周绘画频率</h3>
-    <div id="chartBars" style="display:flex;align-items:flex-end;gap:4px;height:120px;"></div>
-  </div>
+  <div id="timelineList" class="timeline list-stagger"></div>
 </div>
 
 <!-- ─── Bottom Navigation ─── -->
@@ -290,636 +233,85 @@
   <button id="tab-home" class="active" onclick="switchTab('home')">
     <span class="icon">🏠</span>首页
   </button>
-  <button id="tab-calendar" onclick="switchTab('calendar')">
-    <span class="icon">📅</span>日历
-  </button>
   <button id="tab-timeline" onclick="switchTab('timeline')">
     <span class="icon">📖</span>记录
   </button>
-  <button id="tab-growth" onclick="switchTab('growth')">
-    <span class="icon">📊</span>成长
-  </button>
+  <span class="reset-link" onclick="resetAllData()">重置</span>
 </div>
 
-<!-- ─── Modal ─── -->
-<div id="modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
+<!-- ─── Detail Modal ─── -->
+<div id="modal" class="modal-overlay">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="btn-close" onclick="closeModal()">✕</button>
     <img id="modalImg" src="" alt="">
-    <div id="modalFeedback" class="modal-feedback"></div>
-    <div id="modalTime" class="modal-time"></div>
-    <button class="modal-close" onclick="closeModal()">关闭</button>
+    <div class="modal-info">
+      <div id="modalHeader" class="modal-header"></div>
+      <div id="modalReflection" style="display:none;"></div>
+      <div id="modalMilestone" style="display:none;"></div>
+      <div id="modalFeedback" class="modal-feedback"></div>
+      <div id="modalNowReview" style="display:none;"></div>
+    </div>
   </div>
 </div>
 
-<script>
-// ─── State ───
-const API_BASE = '';
-let records = [];
-
-// ─── Init ───
-document.addEventListener('DOMContentLoaded', () => {
-  loadProfile();
-  loadStats();
-  loadTimeline();
-});
-
-// ─── Profile ───
-let userName = '小伙伴';
-
-async function loadProfile() {
-  try {
-    const res = await fetch(`${API_BASE}/api/profile`);
-    const data = await res.json();
-    if (data.profile && data.profile.name) {
-      userName = data.profile.name;
-    }
-    // 更新名称显示
-    document.getElementById('userNameDisplay').textContent = userName;
-    const nameEl = document.getElementById('aiName');
-    if (nameEl) nameEl.textContent = `艾莉西亚 → ${userName}`;
-  } catch(e) {}
-  // 如果还是默认名，提示设置
-  if (userName === '小伙伴') {
-    setTimeout(setName, 1500);
-  }
-}
-
-async function setName() {
-  const name = prompt('艾莉西亚想认识你！你叫什么名字？', userName === '小伙伴' ? '' : userName);
-  if (name && name.trim()) {
-    userName = name.trim().slice(0, 20);
-    await fetch(`${API_BASE}/api/profile`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: userName})
-    });
-    document.getElementById('userNameDisplay').textContent = userName;
-    const nameEl = document.getElementById('aiName');
-    if (nameEl) nameEl.textContent = `艾莉西亚 → ${userName}`;
-  }
-}
-
-// ─── Stats ───
-async function loadStats() {
-  try {
-    const res = await fetch(`${API_BASE}/api/stats`);
-    const data = await res.json();
-    const el = document.getElementById('streakDisplay');
-    if (data.streak > 0) {
-      el.textContent = `🔥 连续绘画 ${data.streak} 天 · 共 ${data.total} 张`;
-    } else if (data.total > 0) {
-      el.textContent = `📝 共 ${data.total} 张画作 · 今天还没画呢`;
-    } else {
-      el.textContent = '';
-    }
-  } catch (e) {}
-}
-
-// ─── Tab switching ───
-function switchTab(tab) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
-  document.getElementById(`page-${tab}`).classList.add('active');
-  document.getElementById(`tab-${tab}`).classList.add('active');
-  if (tab === 'timeline') renderTimeline();
-  if (tab === 'calendar') renderCalendar();
-  if (tab === 'growth') renderGrowth();
-}
-
-// ─── Camera / Upload ───
-function openCamera() {
-  document.getElementById('cameraInput').click();
-}
-
-function openUpload() {
-  document.getElementById('uploadInput').click();
-}
-
-document.getElementById('cameraInput').addEventListener('change', e => {
-  if (e.target.files.length) uploadImage(e.target.files[0]);
-});
-document.getElementById('uploadInput').addEventListener('change', e => {
-  if (e.target.files.length) uploadImage(e.target.files[0]);
-});
-
-// ─── Upload → Analyze ───
-async function uploadImage(file) {
-  // Show spinner, hide previous content
-  document.getElementById('spinner').classList.add('active');
-  document.getElementById('feedback').classList.remove('visible');
-  document.getElementById('error').classList.remove('visible');
-
-  const formData = new FormData();
-  formData.append('image', file);
-
-  try {
-    const res = await fetch(`${API_BASE}/api/analyze`, {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      showError(data.error || '分析失败，请重试');
-      return;
-    }
-
-    showFeedback(data.record);
-    await loadStats();
-    await loadTimeline();
-
-  } catch (err) {
-    showError('网络错误，请检查服务器是否在运行');
-  } finally {
-    document.getElementById('spinner').classList.remove('active');
-    // Reset file inputs so same file can be re-selected
-    document.getElementById('cameraInput').value = '';
-    document.getElementById('uploadInput').value = '';
-  }
-}
-
-// ─── Show Feedback (三段式) ───
-function showFeedback(record) {
-  const container = document.getElementById('feedback');
-  const shareSection = document.getElementById('shareSection');
-  const content = document.getElementById('feedbackContent');
-  const badge = document.getElementById('elapsedBadge');
-  container.classList.add('visible');
-  shareSection.classList.add('visible');
-
-  // Show elapsed time
-  if (record.elapsed_s) {
-    const s = record.elapsed_s;
-    badge.textContent = s < 10 ? `${s}s` : `${Math.round(s)}s`;
-  }
-
-  // 普通文字一个色，术语自动高亮可点击
-  const lines = record.feedback.split('\n').filter(l => l.trim());
-  let html = '';
-
-  lines.forEach(line => {
-    const cleanLine = line.trim().replace(/^[\d]+[)）.、:：]?\s*/, '');
-    if (!cleanLine) return;
-    html += `<p style="margin-bottom:6px;">${enrichText(cleanLine)}</p>`;
-  });
-
-  content.innerHTML = html;
-
-  // Scroll to feedback
-  container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// ─── Timeline ───
-async function loadTimeline() {
-  try {
-    const res = await fetch(`${API_BASE}/api/timeline`);
-    const data = await res.json();
-    records = data.records || [];
-    updateHomepage();
-    // 刷新当前 tab
-    const active = document.querySelector('.page.active');
-    if (active) {
-      const id = active.id.replace('page-', '');
-      if (id === 'calendar') renderCalendar();
-      if (id === 'growth') renderGrowth();
-    }
-  } catch (e) {
-    // Silent fail on timeline load
-  }
-}
-
-function updateHomepage() {
-  const container = document.getElementById('lastDrawingContainer');
-  const empty = document.getElementById('emptyState');
-
-  if (records.length === 0) {
-    container.classList.add('hidden');
-    empty.classList.remove('hidden');
-    return;
-  }
-
-  container.classList.remove('hidden');
-  empty.classList.add('hidden');
-
-  // records 是倒序的（最新在前），取第 0 个
-  const last = records[0];
-  document.getElementById('lastDrawingImg').src = `${API_BASE}/data/${last.image}`;
-}
-
-function renderTimeline() {
-  const list = document.getElementById('timelineList');
-
-  if (!records || records.length === 0) {
-    list.innerHTML = '<div class="timeline-empty">还没有画作记录<br>去画第一张吧！🎨</div>';
-    return;
-  }
-
-  // Show newest first
-  const reversed = [...records].reverse();
-  list.innerHTML = '<h3>📖 成长记录</h3>' + reversed.map((r, i) => {
-    const recordIndex = records.length - 1 - i;
-    return `
-    <div class="timeline-item" onclick="openModal(records[${recordIndex}])" style="cursor:pointer;">
-      <div class="thumb"><img src="${API_BASE}/data/${r.image}" alt="第${i+1}张"></div>
-      <div class="info">
-        <div class="preview">${r.feedback.replace(/\n/g, ' · ').slice(0, 80)}</div>
-        <div class="time">第 ${records.length - i} 张 · ${formatTime(r.timestamp)}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ─── Glossary ───
-const GLOSSARY = {
-  '线条': '线条是绘画最基本的元素——直线的刚硬、曲线的柔美，不同的线条给人不同的感觉',
-  '透视': '透视就是「近大远小」——离你近的东西画大，远的画小，这样画面就有立体感了',
-  '明暗交界线': '明暗交界线是物体上「亮面」和「暗面」交界的那条线，是画立体感最关键的位置',
-  '高光': '高光是物体上最亮的那一点或那一块，一般是光源直接照到的地方，比如眼睛里的那个小白点',
-  '投影': '投影是物体遮住光线后，投在桌面或地面上的影子，能让物体看起来是「站在那儿」的',
-  '构图': '构图就是你决定把画的主体放在纸的哪个位置，以及周围留多少空白',
-  '对比': '对比是把不同的元素放在一起互相衬托——比如粗线条和细线条、深色和浅色，让画面不单调',
-  '动态': '动态就是画中看起来有「动感」——比如飘动的头发、奔跑的姿势，让人觉得下一秒会动起来',
-  '轮廓线': '轮廓线是物体边缘的那一圈线，决定了物体的形状',
-  '质感': '质感就是画出来的东西让人感觉像什么材质——比如光滑的陶瓷、粗糙的石头、柔软的布',
-  '层次': '层次就是画中前后物体的远近关系，前面的挡住后面的，越远的颜色越淡',
-  '饱和度': '饱和度就是颜色的鲜艳程度——大红大绿饱和度就高，灰灰暗暗饱和度就低',
-  '立体感': '立体感就是让画中物体看起来是「鼓起来的」而不是扁平的，靠明暗和阴影来实现',
-  '缝隙': '缝隙就是指物体之间的间距和空位，画好缝隙能让画面更透气不拥挤',
-  '细节': '细节是画中那些小而精的部分——比如衣服上的褶皱、瞳孔里的反光，让画面更耐看',
-  '冷暖对比': '冷暖对比是把偏蓝绿的颜色（冷色）和偏红黄的颜色（暖色）放在一起，互相衬托，更有视觉冲击力',
-  '笔触': '笔触就是笔在纸上留下的痕迹——是细腻的还是粗犷的，方向是乱还是整齐',
-  '留白': '留白是有意让画面某些地方空着不画，给观众呼吸的空间',
-  '虚实': '虚实就是「近处画清楚、远处画模糊」——画里离你近的部分画详细，远的简化',
-  '运笔': '运笔就是你用笔的方式和方向——是顺着结构画还是随性涂，决定了线条的质感',
-  '叠色': '叠色就是颜色一层层叠上去，让色彩更丰富有深度',
-  '色调': '色调就是整幅画的「主色调」——偏黄调就是暖色调，偏蓝调就是冷色调',
-  '光影': '光影就是光从哪里来、照到哪里、哪里最亮哪里最暗，决定了立体感',
-  '体积感': '体积感就是让画中物体看起来是「鼓起来的」而不是扁平的，靠明暗变化实现',
-  '空间感': '空间感就是让画面看起来有深度，不像是贴在一张纸上',
-  '结构线': '结构线是物体内部看不见但存在的框架线，比如人头的十字线，用来确定五官位置',
-};
-
-function enrichText(text) {
-  // 扫描文本，把术语包裹成可点击的 span
-  let result = text;
-  // 按术语长度从长到短排序，避免部分匹配问题
-  const terms = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
-  for (const term of terms) {
-    const regex = new RegExp(`(${term})`, 'g');
-    result = result.replace(regex, `<span class="glossary-term" onclick="showGlossaryTip(event,'${term}')">$1</span>`);
-  }
-  return result.replace(/\n/g, '<br>');
-}
-
-function showGlossaryTip(event, term) {
-  event.stopPropagation();
-  const existing = document.querySelector('.glossary-tip.visible');
-  if (existing) existing.classList.remove('visible');
-
-  let tip = document.getElementById('glossaryTip');
-  if (!tip) {
-    tip = document.createElement('div');
-    tip.id = 'glossaryTip';
-    tip.className = 'glossary-tip';
-    tip.onclick = () => tip.classList.remove('visible');
-    document.body.appendChild(tip);
-  }
-
-  tip.innerHTML = `<span class="tip-word">${term}</span>${GLOSSARY[term]}`;
-  tip.classList.add('visible');
-
-  // Position near the click
-  const rect = event.target.getBoundingClientRect();
-  let left = rect.left + rect.width / 2 - 140;
-  let top = rect.bottom + 8;
-  if (left < 10) left = 10;
-  if (top + 200 > window.innerHeight) top = rect.top - 160;
-  tip.style.left = left + 'px';
-  tip.style.top = top + 'px';
-}
-
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.glossary-term')) {
-    const tip = document.getElementById('glossaryTip');
-    if (tip) tip.classList.remove('visible');
-  }
-});
-
-// ─── Calendar ───
-let calYear, calMonth;
-
-function renderCalendar() {
-  const now = new Date();
-  calYear = calYear || now.getFullYear();
-  calMonth = calMonth !== undefined ? calMonth : now.getMonth();
-
-  document.getElementById('calTitle').textContent = `${calYear} 年 ${calMonth + 1} 月`;
-  document.getElementById('calPrev').onclick = () => { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); };
-  document.getElementById('calNext').onclick = () => { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); };
-
-  // 建立绘画日期索引
-  const drawDates = new Set();
-  const dayRecords = {};
-  for (const r of records) {
-    try {
-      const d = new Date(r.timestamp);
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      drawDates.add(key);
-      if (!dayRecords[key]) dayRecords[key] = [];
-      dayRecords[key].push(r);
-    } catch(e) {}
-  }
-
-  // 构建日历网格
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const today = new Date();
-  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-  const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-
-  let html = '<div class="cal-grid">';
-  html += weekdays.map(w => `<div class="cal-weekday">${w}</div>`).join('');
-
-  // 前月补齐
-  const prevMonthDays = new Date(calYear, calMonth, 0).getDate();
-  for (let i = firstDay - 1; i >= 0; i--) {
-    html += `<div class="cal-day other-month">${prevMonthDays - i}</div>`;
-  }
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const key = `${calYear}-${calMonth}-${d}`;
-    const isToday = key === todayKey;
-    const hasDrawing = drawDates.has(key);
-    let cls = 'cal-day';
-    if (hasDrawing) cls += ' has-drawing';
-    if (isToday) cls += ' today';
-    html += `<div class="${cls}" onclick="showCalDay('${key}')">${d}${hasDrawing ? '<span class="cal-dot"></span>' : ''}</div>`;
-  }
-
-  // 后月补齐
-  const totalCells = firstDay + daysInMonth;
-  const remaining = (7 - totalCells % 7) % 7;
-  for (let d = 1; d <= remaining; d++) {
-    html += `<div class="cal-day other-month">${d}</div>`;
-  }
-
-  html += '</div>';
-  document.getElementById('calendarGrid').innerHTML = html;
-
-  // 清空详情
-  document.getElementById('calDayDetail').classList.remove('visible');
-}
-
-function showCalDay(key) {
-  const [y, m, d] = key.split('-').map(Number);
-  const detail = document.getElementById('calDayDetail');
-  const title = document.getElementById('calDayTitle');
-  const list = document.getElementById('calDayDrawings');
-
-  title.textContent = `${y} 年 ${m + 1} 月 ${d} 日`;
-
-  // 收集当天画作
-  const dayItems = records.filter(r => {
-    try {
-      const rd = new Date(r.timestamp);
-      return rd.getFullYear() === y && rd.getMonth() === m && rd.getDate() === d;
-    } catch(e) { return false; }
-  });
-
-  if (dayItems.length === 0) {
-    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-size:14px;">这天没有画作记录</div>';
-  } else {
-    list.innerHTML = dayItems.map(r => {
-      // 找到在 records 中的索引
-      const idx = records.findIndex(x => x.id === r.id);
-      return `
-        <div class="cal-day-detail-item" onclick="openModal(records[${idx >= 0 ? idx : 0}])">
-          <div class="thumb"><img src="${API_BASE}/data/${r.image}" alt=""></div>
-          <div class="preview">${r.feedback ? r.feedback.replace(/\n/g,' · ').slice(0,60) : '无反馈'}</div>
-        </div>`;
-    }).join('');
-  }
-
-  detail.classList.add('visible');
-}
-
-// ─── Growth ───
-function renderGrowth() {
-  if (!records.length) {
-    document.getElementById('growthStats').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-size:14px;width:100%;">还没有画作记录</div>';
-    document.getElementById('chartBars').innerHTML = '';
-    return;
-  }
-
-  // 计算统计
-  const total = records.length;
-  const drawDates = [...new Set(records.map(r => {
-    try { return new Date(r.timestamp).toISOString().slice(0,10); } catch(e) { return ''; }
-  }).filter(Boolean))].sort();
-  const uniqueDays = drawDates.length;
-
-  // 最长连胜
-  let maxStreak = 0, curStreak = 1;
-  for (let i = 1; i < drawDates.length; i++) {
-    const prev = new Date(drawDates[i-1]);
-    const curr = new Date(drawDates[i]);
-    const diff = (curr - prev) / (1000 * 60 * 60 * 24);
-    if (diff === 1) {
-      curStreak++;
-    } else {
-      maxStreak = Math.max(maxStreak, curStreak);
-      curStreak = 1;
-    }
-  }
-  maxStreak = Math.max(maxStreak, curStreak);
-
-  document.getElementById('growthStats').innerHTML = `
-    <div class="grow-stat"><div class="num">${total}</div><div class="lbl">总画作</div></div>
-    <div class="grow-stat"><div class="num">${uniqueDays}</div><div class="lbl">绘画天数</div></div>
-    <div class="grow-stat"><div class="num">${maxStreak}</div><div class="lbl">最长连胜</div></div>
-    <div class="grow-stat"><div class="num">${curStreak}</div><div class="lbl">当前连胜</div></div>
-  `;
-
-  // 近 7 天柱状图
-  const bars = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    const count = records.filter(r => {
-      try { return new Date(r.timestamp).toISOString().slice(0, 10) === key; }
-      catch(e) { return false; }
-    }).length;
-    const label = `${d.getMonth()+1}/${d.getDate()}`;
-    bars.push({ label, count, date: key });
-  }
-
-  const maxCount = Math.max(...bars.map(b => b.count), 1);
-  const chartHtml = bars.map(b => {
-    const h = Math.max(4, (b.count / maxCount) * 100);
-    return `<div class="chart-bar" style="height:${h}px;"><div class="bar-label">${b.label}</div></div>`;
-  }).join('');
-  document.getElementById('chartBars').innerHTML = chartHtml;
-}
-
-// ─── Modal ───
-function openModal(record) {
-  document.getElementById('modalImg').src = `${API_BASE}/data/${record.image}`;
-  document.getElementById('modalFeedback').textContent = record.feedback;
-  document.getElementById('modalTime').textContent = formatTime(record.timestamp);
-  document.getElementById('modal').classList.add('visible');
-}
-
-function closeModal() {
-  document.getElementById('modal').classList.remove('visible');
-}
-
-function formatTime(ts) {
-  try {
-    const d = new Date(ts);
-    return `${d.getMonth()+1}月${d.getDate()}日 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  } catch(e) {
-    return ts;
-  }
-}
-
-// ─── Share Image ───
-async function generateShareImage() {
-  if (records.length < 1) return;
-
-  const canvas = document.getElementById('shareCanvas');
-  const ctx = canvas.getContext('2d');
-
-  const W = 800, H = 1000;
-  canvas.width = W;
-  canvas.height = H;
-
-  // Load images via fetch + blob to avoid CORS issues
-  const loadImg = async (url) => {
-    const resp = await fetch(url);
-    const blob = await resp.blob();
-    return new Promise((ok, no) => {
-      const img = new Image();
-      img.onload = () => ok(img);
-      img.onerror = no;
-      img.src = URL.createObjectURL(blob);
-    });
-  };
-
-  // records 是倒序（最新在前），取最后一个为第 1 张
-  const firstUrl = `${API_BASE}/data/${records[records.length - 1].image}`;
-  const lastUrl = `${API_BASE}/data/${records[0].image}`;
-
-  try {
-    const [firstImg, lastImg] = await Promise.all([loadImg(firstUrl), loadImg(lastUrl)]);
-
-    // Background
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#faf8f5');
-    grad.addColorStop(1, '#efeae2');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-
-    // Title
-    ctx.fillStyle = '#2c2c2c';
-    ctx.font = 'bold 36px -apple-system,sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('✏️ 每日绘 Craft', W / 2, 60);
-
-    // Streak
-    const streakEl = document.getElementById('streakDisplay');
-    ctx.font = '18px -apple-system,sans-serif';
-    ctx.fillStyle = '#5b7a6e';
-    ctx.fillText(streakEl.textContent || `共 ${records.length} 张画作`, W / 2, 92);
-
-    // Divider
-    ctx.strokeStyle = '#ddd7ce';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(40, 112);
-    ctx.lineTo(W - 40, 112);
-    ctx.stroke();
-
-    // Image dimensions
-    const imgW = 340, imgH = 340;
-    const gapX = 40;
-    const topY = 140;
-
-    // First image (left)
-    ctx.font = 'bold 20px -apple-system,sans-serif';
-    ctx.fillStyle = '#8a8a8a';
-    ctx.textAlign = 'center';
-    ctx.fillText('🎬 第 1 天', gapX + imgW / 2, topY - 12);
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(gapX, topY, imgW, imgH);
-    ctx.clip();
-    ctx.drawImage(firstImg, gapX, topY, imgW, imgH);
-    ctx.restore();
-
-    // Border
-    ctx.strokeStyle = '#ddd7ce';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(gapX, topY, imgW, imgH);
-
-    // Arrow
-    ctx.font = '40px -apple-system,sans-serif';
-    ctx.fillStyle = '#bbb';
-    ctx.textAlign = 'center';
-    ctx.fillText('→', W / 2, topY + imgH / 2 + 14);
-
-    // Last image (right)
-    const lastLabel = records.length > 1 ? `🎨 第 ${records.length} 天` : '🎨 今天';
-    ctx.font = 'bold 20px -apple-system,sans-serif';
-    ctx.fillStyle = '#5b7a6e';
-    ctx.textAlign = 'center';
-    ctx.fillText(lastLabel, W - gapX - imgW / 2, topY - 12);
-
-    const lastX = W - gapX - imgW;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(lastX, topY, imgW, imgH);
-    ctx.clip();
-    ctx.drawImage(lastImg, lastX, topY, imgW, imgH);
-    ctx.restore();
-
-    ctx.strokeStyle = '#5b7a6e';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(lastX, topY, imgW, imgH);
-
-    // Footer
-    ctx.font = '14px -apple-system,sans-serif';
-    ctx.fillStyle = '#9a9a9a';
-    ctx.textAlign = 'center';
-    ctx.fillText('手机 + 纸 + 笔 + AI 陪伴 · 每天画一点', W / 2, H - 60);
-
-    // Download (用 Blob 兼容移动端 Chrome)
-    canvas.toBlob((blob) => {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `每日绘-第${records.length}天.png`;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 1000);
-    }, 'image/png');
-
-  } catch (e) {
-    showError('生成分享图失败，图片加载出错');
-  }
-}
-
-// ─── Error ───
-function showError(msg) {
-  const el = document.getElementById('error');
-  el.textContent = msg;
-  el.classList.add('visible');
-  document.getElementById('spinner').classList.remove('active');
-}
-</script>
+<!-- refModal removed in v3.0 -->
+
+<!-- bossModal / bossResultModal removed in v3.0 (Phase 2) -->
+
+<!-- masterModal removed in v3.0 (Phase 2) -->
+
+<!-- ─── 自定义确认弹窗（替代系统 confirm） ─── -->
+<div id="confirmOverlay" class="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-dialog">
+    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <div class="confirm-title" id="confirmTitle">确认操作</div>
+    <div class="confirm-desc" id="confirmDesc"></div>
+    <div class="confirm-actions">
+      <button class="btn btn-md btn-cancel" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-md btn-danger" id="confirmOkBtn">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 应用内相机拍摄页 ─── -->
+<div id="cameraOverlay" class="camera-overlay">
+  <!-- 拍摄模式 -->
+  <div id="cameraShootView" class="camera-video-wrap">
+    <div class="camera-header">
+      <button class="camera-close-btn" onclick="closeCamera()">✕</button>
+      <span class="cam-title">📸 拍下我的画</span>
+      <span class="camera-placeholder"></span>
+    </div>
+    <video id="cameraVideo" class="camera-video" autoplay playsinline></video>
+    <div class="camera-guide-frame"></div>
+    <div class="camera-guide-hint">把画作对准虚线框<br>从正上方平行拍摄效果最好</div>
+    <div class="camera-controls">
+      <span class="camera-placeholder"></span>
+      <button class="camera-shutter" id="cameraShutter" onclick="capturePhoto()"></button>
+      <button class="camera-switch-btn" onclick="switchCamera()">🔄</button>
+    </div>
+  </div>
+  <!-- 预览模式 -->
+  <div id="cameraPreviewView" class="camera-preview-wrap" style="display:none;">
+    <div class="camera-header" style="position:absolute;top:0;left:0;right:0;">
+      <button class="camera-close-btn" onclick="closeCamera()">✕</button>
+      <span class="cam-title">预览</span>
+      <span class="camera-placeholder"></span>
+    </div>
+    <img id="cameraPreviewImg" class="camera-preview-img" src="" alt="预览">
+    <div class="camera-preview-actions">
+      <button class="btn btn-md btn-secondary" onclick="retakePhoto()">🔄 重拍</button>
+      <button class="btn btn-md btn-primary" onclick="confirmPhoto()">✅ 用这张</button>
+    </div>
+  </div>
+  <!-- 错误模式 -->
+  <div id="cameraErrorView" class="camera-error" style="display:none;">
+    <div class="err-icon">📷</div>
+    <div>无法访问摄像头<br>请检查浏览器权限设置，或使用上传方式</div>
+    <button class="err-btn" onclick="fallbackToUpload()">📁 从相册选择</button>
+  </div>
+</div>
+
+<script src="static/js/app.js?v=20260730v19"></script>
 </body>
 </html>
