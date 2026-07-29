@@ -8,7 +8,7 @@ AI 陪伴式绘画 App——只需要一张纸和一支笔就可以开始。
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # 填入你的 API Key
+# 在 .env 中配置 API Key（参考 .env 文件格式）
 python3 app.py
 ```
 
