@@ -179,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
   window.scrollTo(0, 0);
   loadProfile();
   loadStats(true);   // 初始化时显示欢迎回来
-  updateFeedbackModeTag();  // 初始化反馈模式标签
   loadTimeline();
   loadTodayTheme();
   loadThemeLibrary();
