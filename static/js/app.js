@@ -6,28 +6,6 @@ let waitingTimer = null;
 let currentDrawingSubject = '这次';  // 当前画作主题，用于反思提示文案
 let currentRecordId = null;  // 当前反馈的记录 ID，用于保存反思文字
 
-// 反馈模式：companion（陪伴模式）/ concise（精简模式）
-let feedbackMode = localStorage.getItem('feedback_mode') || 'companion';
-
-function updateFeedbackModeTag() {
-  const tag = document.getElementById('feedbackModeTag');
-  if (!tag) return;
-  if (feedbackMode === 'concise') {
-    tag.textContent = '⚡';
-    tag.title = '当前为精简模式，点击切换为陪伴模式';
-  } else {
-    tag.textContent = '🤖';
-    tag.title = '当前为陪伴模式，点击切换为精简模式';
-  }
-}
-
-function toggleFeedbackMode() {
-  feedbackMode = feedbackMode === 'companion' ? 'concise' : 'companion';
-  localStorage.setItem('feedback_mode', feedbackMode);
-  updateFeedbackModeTag();
-  showToast(feedbackMode === 'companion' ? '已切换到陪伴模式' : '已切换到精简模式', 'info');
-}
-
 // 防止浏览器恢复滚动位置，确保每次进入都从顶部开始
 if ('scrollRestoration' in history) {
   history.scrollRestoration = 'manual';
@@ -1259,14 +1237,9 @@ function showFeedback(record) {
 
   // 用户名标签保持隐藏
 
-  // 有 feedback_json → 根据模式决定渲染方式
+  // 有 feedback_json → 渲染陪伴模式流式反馈
   if (record.feedback_json && record.feedback_json.layers && record.feedback_json.layers.length >= 4) {
-    if (feedbackMode === 'concise') {
-      // 精简模式：用普通反馈容器显示简化文本
-      renderConciseFeedback(record);
-    } else {
-      renderEnhancedFeedback(record);
-    }
+    renderEnhancedFeedback(record);
     return;
   }
 
@@ -1464,57 +1437,6 @@ function renderEnhancedFeedback(record) {
 }
 
 // ─── 精简模式反馈 ───
-function renderConciseFeedback(record) {
-  const container = document.getElementById('feedback');
-  const content = document.getElementById('feedbackContent');
-  const badge = document.getElementById('elapsedBadge');
-  const legacyMilestone = document.getElementById('milestoneSlotLegacy');
-
-  // 使用普通 feedback 文本（后端已生成）
-  let text = record.feedback || '';
-
-  // 如果没有普通文本，从 layers 合成简化版（只取 identify + observe + encourage）
-  if (!text && record.feedback_json && record.feedback_json.layers) {
-    const layers = record.feedback_json.layers;
-    const keyLayers = layers.filter(l => ['identify', 'observe', 'encourage'].includes(l.type));
-    text = keyLayers.map(l => l.content).filter(Boolean).join('\n\n');
-  }
-
-  content.innerHTML = enrichText(text).replace(/\n/g, '<br>');
-  badge.textContent = record.elapsed ? `⏱ ${record.elapsed}` : '';
-  container.classList.add('visible');
-
-  // 里程碑（精简模式也显示）
-  const total = (record.total_drawings !== undefined) ? record.total_drawings : (records.length);
-  const m = getMilestone(total);
-  if (m && legacyMilestone) {
-    legacyMilestone.style.display = 'block';
-    legacyMilestone.innerHTML = `
-      <div class="milestone-card ${m.key}">
-        <div class="ms-icon">${m.icon}</div>
-        <div class="ms-text">
-          <div class="ms-title">${m.title}</div>
-          <div class="ms-desc">${m.desc}</div>
-        </div>
-      </div>`;
-    showAchievementPopup(m);
-  }
-
-  // 滚动到反馈区
-  setTimeout(() => {
-    const rect = container.getBoundingClientRect();
-    window.scrollTo({ top: window.pageYOffset + rect.top - 12, behavior: 'smooth' });
-  }, 200);
-
-  startActionButtonsDelay(record);
-
-  setTimeout(() => {
-    document.getElementById('reflectionArea').classList.add('visible');
-    resetReflectionUI();
-    const input = document.getElementById('reflectionInput');
-    if (input) input.placeholder = `比如：${currentDrawingSubject}的形状这次画准了`;
-  }, 1000);
-}
 
 // ─── 操作按钮 ───
 function renderActionButtons(record) {

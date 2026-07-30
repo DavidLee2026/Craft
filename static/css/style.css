@@ -308,26 +308,7 @@ body{
 .level-tag.hidden { display: none; }
 
 /* 反馈模式切换标签 */
-.feedback-mode-tag {
-  padding: 2px 6px;
-  border-radius: var(--radius-pill);
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-  transition: all var(--motion-fast) var(--ease-out);
-  background: transparent;
-  color: var(--color-text-secondary);
-  border: none;
-}
-.feedback-mode-tag:hover {
-  background: var(--color-bg-subtle);
-  color: var(--color-text-primary);
-}
-.feedback-mode-tag:active {
-  transform: scale(0.90);
-}
+
 
 /* ── 欢迎回来横幅 ── */
 .welcome-back-banner {
