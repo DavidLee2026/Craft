@@ -2003,10 +2003,10 @@ function renderTimelineListItem(r, recordIndex) {
   const safeIdx = recordIndex >= 0 ? recordIndex : 0;
   return `
     <div class="timeline-item" onclick="openModal(records[${safeIdx}])" style="cursor:pointer;">
-      <div class="thumb"><img src="${API_BASE}/data/${r.image}" alt="第${safeIdx+1}张"></div>
+      <div class="thumb"><img src="${API_BASE}/data/${r.image}" alt="第${records.length - safeIdx}张"></div>
       <div class="info">
         <div class="preview">${(r.feedback || '').replace(/\n/g, ' · ').slice(0, 80)}</div>
-        <div class="time">第 ${safeIdx + 1} 张 · ${formatTime(r.timestamp)}</div>
+        <div class="time">第 ${records.length - safeIdx} 张 · ${formatTime(r.timestamp)}</div>
       </div>
     </div>`;
 }
@@ -2358,7 +2358,7 @@ function openModal(record) {
 
   // 查找记录索引（用于显示"第 N 张"）
   const recordIndex = records.findIndex(r => r.id === record.id);
-  const drawingNum = recordIndex >= 0 ? recordIndex + 1 : '';
+  const drawingNum = recordIndex >= 0 ? records.length - recordIndex : '';
 
   // 构建头部信息
   const headerEl = document.getElementById('modalHeader');
@@ -2458,7 +2458,7 @@ function openModal(record) {
   if (nowReviewEl) {
     const recordIndex = records.findIndex(r => r.id === record.id);
     const totalDrawings = records.length;
-    const drawingNum = recordIndex >= 0 ? recordIndex + 1 : 1;
+    const drawingNum = recordIndex >= 0 ? records.length - recordIndex : 1;
     const timeAgo = getTimeAgo(record.timestamp);
 
     // 生成回顾性文字

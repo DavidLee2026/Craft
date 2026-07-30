@@ -1032,9 +1032,10 @@ def _extract_complete_layers(accumulated: str, seen_count: int = 0) -> list[dict
     i = 0
     found = 0
     while i < len(accumulated):
-        idx = accumulated.find('{"type"', i)
-        if idx == -1:
+        match = re.search(r'\{\s*"type"', accumulated[i:])
+        if not match:
             break
+        idx = i + match.start()
         try:
             obj, consumed = _json_decoder.raw_decode(accumulated[idx:])
             if isinstance(obj, dict) and obj.get("type") in _LAYER_TYPES:
@@ -1411,7 +1412,7 @@ def api_delete_record(record_id):
     # 删除图片文件
     image_path = record.get("image", "")
     if image_path:
-        full_path = IMAGES_DIR / image_path
+        full_path = DATA_DIR / image_path
         if full_path.exists():
             try:
                 full_path.unlink()
