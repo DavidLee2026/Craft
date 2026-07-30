@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#C97D5B">
 <link rel="manifest" href="/manifest.json">
 <title>每日绘 Craft</title>
-<link rel="stylesheet" href="static/css/style.css?v=20260730v30">
+<link rel="stylesheet" href="static/css/style.css?v=20260730v35">
 </head>
 <body class="booting">
 
@@ -110,7 +110,7 @@
   </div>
 
   <!-- 引导文字（仅无画作记录时显示） -->
-  <div id="guideText" class="guide-text hidden">
+  <div id="guideText" class="guide-text">
     <div class="guide-steps">在纸上画画 → 拍下来 → AI 给你画面建议</div>
     <div class="guide-tips">
       💡 拍照小提示：<br>
@@ -191,6 +191,11 @@
         <button class="r-quick-btn" onclick="selectQuickReflection(this, '颜色搭配满意')">🎨 颜色满意</button>
         <button class="r-quick-btn" onclick="selectQuickReflection(this, '构图比之前好了')">📐 构图好了</button>
         <button class="r-quick-btn r-quick-custom" onclick="showCustomReflection()">✏️ 自己写</button>
+      </div>
+      <!-- 确认发送条 -->
+      <div id="reflectionConfirm" class="r-confirm-bar" style="display:none;">
+        <span class="r-confirm-text" id="rConfirmText">已选：</span>
+        <button class="r-confirm-btn" onclick="confirmReflection()">✓ 确认发送</button>
       </div>
       <div class="r-row r-custom-row" id="reflectionCustomRow" style="display:none;">
         <input class="r-input" id="reflectionInput" type="text" placeholder="说说这次画得最满意的地方" maxlength="200">
@@ -349,6 +354,6 @@
   </div>
 </div>
 
-<script src="static/js/app.js?v=20260730v29"></script>
+<script src="static/js/app.js?v=20260730v35"></script>
 </body>
 </html>

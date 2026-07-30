@@ -550,10 +550,10 @@ async function loadTodayTheme() {
       updateThemeCard(data.theme);
       currentThemeId = data.theme.id || '';
     }
-    // 有画作记录时隐藏引导文字，无时显示
+    // 引导文字始终显示（方便新用户查看拍摄提示）
     const guide = document.getElementById('guideText');
     if (guide) {
-      guide.classList.toggle('hidden', records.length > 0);
+      guide.classList.remove('hidden');
     }
   } catch(e) {
     // 静默失败
@@ -822,7 +822,17 @@ document.getElementById('uploadInput').addEventListener('change', e => {
   if (e.target.files.length) showPreview(e.target.files[0]);
 });
 
+function resetPreviewUI() {
+  const actions = document.querySelector('.preview-confirm-actions');
+  if (actions) actions.style.display = 'flex';
+  const tag = document.querySelector('.preview-confirm-tag');
+  if (tag) tag.textContent = '✓ 拍到了';
+  const hint = document.querySelector('.preview-confirm-hint');
+  if (hint) hint.textContent = '确认提交后，小绘会仔细看看这幅画';
+}
+
 function showPreview(file) {
+  resetPreviewUI();
   pendingFile = file;
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -842,14 +852,16 @@ function cancelPreview() {
 
 function submitDrawing() {
   if (!pendingFile) return;
-  document.getElementById('previewSection').classList.add('hidden');
 
-  // 在顶部显示刚提交的照片
+  // 预览区不隐藏也不跳全屏——照片保持在原位
+  document.querySelector('.preview-confirm-actions').style.display = 'none';
+  document.querySelector('.preview-confirm-tag').textContent = '🔍 分析中';
+  document.querySelector('.preview-confirm-hint').textContent = 'AI 正在看你的画...';
+
+  // 为保存/分享功能保留图片数据（保持隐藏）
   const reader = new FileReader();
   reader.onload = (e) => {
     document.getElementById('submittedPhotoImg').src = e.target.result;
-    document.getElementById('submittedPhoto').classList.remove('hidden');
-    document.getElementById('submittedPhoto').scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
   reader.readAsDataURL(pendingFile);
 
@@ -1465,15 +1477,32 @@ function startActionButtonsDelay(record) {
 }
 
 // ─── 反思交互 ───
+let selectedReflectionText = '';
+
 function selectQuickReflection(btn, text) {
-  // 标记选中状态
+  // 切换选中（允许改选其他标签）
   document.querySelectorAll('.r-quick-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
-  // 直接发送反思
-  sendReflection(text);
+  selectedReflectionText = text;
+  // 显示确认发送条
+  document.getElementById('rConfirmText').textContent = `已选：${btn.textContent.replace(/^[^\s]+\s/, '')}`;
+  document.getElementById('reflectionConfirm').style.display = 'flex';
+}
+
+function confirmReflection() {
+  if (!selectedReflectionText) return;
+  // 锁定所有标签，不可再点
+  document.querySelectorAll('.r-quick-btn').forEach(b => b.style.pointerEvents = 'none');
+  document.getElementById('reflectionConfirm').style.display = 'none';
+  sendReflection(selectedReflectionText);
 }
 
 function showCustomReflection() {
+  // 隐藏标签确认条（切换到文字输入模式）
+  document.getElementById('reflectionConfirm').style.display = 'none';
+  document.querySelectorAll('.r-quick-btn').forEach(b => b.classList.remove('selected'));
+  selectedReflectionText = '';
+  // 显示自定义输入
   const row = document.getElementById('reflectionCustomRow');
   if (row) {
     row.style.display = 'flex';
@@ -1491,7 +1520,13 @@ function resetReflectionUI() {
   }
   const customRow = document.getElementById('reflectionCustomRow');
   if (customRow) customRow.style.display = 'none';
-  document.querySelectorAll('.r-quick-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.r-quick-btn').forEach(b => {
+    b.classList.remove('selected');
+    b.style.pointerEvents = '';
+  });
+  const confirmBar = document.getElementById('reflectionConfirm');
+  if (confirmBar) confirmBar.style.display = 'none';
+  selectedReflectionText = '';
   const responseEl = document.getElementById('reflectionResponse');
   if (responseEl) responseEl.classList.remove('visible');
 }
@@ -1518,23 +1553,63 @@ function sendReflection(presetText) {
     } catch(e) {}
   }
 
-  // 显示用户输入的内容 + AI 回应
-  const replies = [
-    `你说得对！这个细节确实处理得很好。下次画的时候记住这个感觉 🎯`,
-    `嗯，你能注意到这一点说明你在进步。继续这样观察细节 👀`,
-    `好眼光！你能主动提出来说明真的在思考 👍`,
-    `没错，你找到了这张画里最有价值的地方——每次都有进步 ✨`,
-  ];
-  const reply = replies[Math.floor(Math.random() * replies.length)];
-
-  document.getElementById('reflectionReply').innerHTML = `
+  // ═══ SSE 流式获取反思回复（逐字显示，不干等）═══
+  const replyEl = document.getElementById('reflectionReply');
+  const responseEl = document.getElementById('reflectionResponse');
+  responseEl.classList.add('visible');
+  replyEl.innerHTML = `
     <div class="chat-meta user">你</div>
     <div class="chat-bubble chat-user">${escapeHtml(text)}</div>
     <div class="chat-meta ai">小绘</div>
-    <div class="chat-bubble chat-ai">${enrichText(reply)}</div>
+    <div class="chat-bubble chat-ai"></div>
   `;
-  const responseEl = document.getElementById('reflectionResponse');
-  responseEl.classList.add('visible');
+  const bubble = replyEl.querySelector('.chat-bubble.chat-ai');
+  bubble.textContent = '…';
+
+  fetch('/api/reflection', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({text: text, subject: currentDrawingSubject}),
+  })
+    .then(r => {
+      if (!r.ok) throw new Error('reflection SSE failed');
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      function readStream() {
+        reader.read().then(({ done, value }) => {
+          if (done) {
+            if (bubble.textContent === '…') bubble.textContent = '每次进步都值得记下来 ☺️';
+            return;
+          }
+          buf += decoder.decode(value, { stream: true });
+          const parts = buf.split('\n\n');
+          buf = parts.pop();
+          for (const part of parts) {
+            if (!part.startsWith('data: ')) continue;
+            let data;
+            try { data = JSON.parse(part.slice(6)); } catch (e) { continue; }
+            if (data.type === 'done') return;
+            if (data.type === 'fallback') {
+              bubble.textContent = data.text;
+              return;
+            }
+            if (data.token) {
+              if (bubble.textContent === '…') bubble.textContent = '';
+              bubble.textContent += data.token;
+            }
+          }
+          readStream();
+        }).catch(() => {
+          if (bubble.textContent === '…') bubble.textContent = '每次进步都值得记下来 ☺️';
+        });
+      }
+      readStream();
+    })
+    .catch(() => {
+      if (bubble.textContent === '…') bubble.textContent = '每次进步都值得记下来 ☺️';
+    });
 
   // 平滑滚动到回应区域
   setTimeout(() => {
@@ -1614,10 +1689,10 @@ async function loadTimeline() {
 }
 
 function updateHomepage() {
-  // 有画作记录时隐藏引导文字，无时显示
+  // 引导文字始终显示（方便新用户查看拍摄提示）
   const guide = document.getElementById('guideText');
   if (guide) {
-    guide.classList.toggle('hidden', records.length > 0);
+    guide.classList.remove('hidden');
   }
 }
 

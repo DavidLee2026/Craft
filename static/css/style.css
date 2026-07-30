@@ -2441,9 +2441,10 @@ body.booting::after {
 
 /* ── 里程碑卡片（增强配色） ── */
 .milestone-card {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 14px;
   border-radius: var(--card-radius);
-  padding: 16px 18px; margin-bottom: 14px;
+  padding: 18px 24px; margin-bottom: 14px;
+  margin-left: -12px; margin-right: -12px;
   box-shadow: 0 4px 16px rgba(0,0,0,.08);
   animation: fbLayerIn .4s ease-out both;
   position: relative; overflow: hidden;
@@ -2451,16 +2452,16 @@ body.booting::after {
 .milestone-card::before {
   content: ''; position: absolute; inset: 0; opacity: 0.15; z-index: 0;
 }
-.milestone-card.m1  { background: linear-gradient(135deg, #FFF5EE, #F5E4D8); border: 1.5px solid #E0AE90; }
-.milestone-card.m1::before  { background: linear-gradient(135deg, #C97D5B, #E0AE90); }
-.milestone-card.m5  { background: linear-gradient(135deg, #EEF5EE, #D4E8D4); border: 1.5px solid #8EC48E; }
-.milestone-card.m5::before  { background: linear-gradient(135deg, #5B9B5B, #8EC48E); }
-.milestone-card.m10 { background: linear-gradient(135deg, #FFF8E8, #F5DFB5); border: 1.5px solid #D4B068; }
-.milestone-card.m10::before { background: linear-gradient(135deg, #D4A040, #F5DFB5); }
-.milestone-card.m25 { background: linear-gradient(135deg, #F5EEF5, #E8D4E8); border: 1.5px solid #B88EC4; }
-.milestone-card.m25::before { background: linear-gradient(135deg, #9B5B9B, #B88EC4); }
-.milestone-card.m50 { background: linear-gradient(135deg, #FFF0E8, #F5D8C4); border: 1.5px solid #C97D5B; }
-.milestone-card.m50::before { background: linear-gradient(135deg, #C97D5B, #D49573); }
+.milestone-card.m1  { background: linear-gradient(135deg, #E8F0E5, #D0E0CC); border: 1.5px solid #A0C098; }
+.milestone-card.m1::before  { background: linear-gradient(135deg, #7B9B6E, #A0C098); }
+.milestone-card.m5  { background: linear-gradient(135deg, #DCF0DC, #B8DCB8); border: 1.5px solid #6BAE6B; }
+.milestone-card.m5::before  { background: linear-gradient(135deg, #3D8B3D, #6BAE6B); }
+.milestone-card.m10 { background: linear-gradient(135deg, #D4ECD4, #A8D4A8); border: 1.5px solid #5BA05B; }
+.milestone-card.m10::before { background: linear-gradient(135deg, #4A8A4A, #5BA05B); }
+.milestone-card.m25 { background: linear-gradient(135deg, #C8E4C8, #94CC94); border: 1.5px solid #4D944D; }
+.milestone-card.m25::before { background: linear-gradient(135deg, #3D7A3D, #4D944D); }
+.milestone-card.m50 { background: linear-gradient(135deg, #BCDCBC, #80C080); border: 1.5px solid #408040; }
+.milestone-card.m50::before { background: linear-gradient(135deg, #306830, #408040); }
 .milestone-card > * { position: relative; z-index: 1; }
 .milestone-icon {
   width: 46px; height: 46px; border-radius: 50%;
@@ -2468,11 +2469,11 @@ body.booting::after {
   font-size: 22px; flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,.12);
 }
-.milestone-icon.m1  { background: linear-gradient(135deg, #C97D5B, #E0AE90); }
-.milestone-icon.m5  { background: linear-gradient(135deg, #5B9B5B, #8EC48E); }
-.milestone-icon.m10 { background: linear-gradient(135deg, #D4A040, #F5DFB5); }
-.milestone-icon.m25 { background: linear-gradient(135deg, #9B5B9B, #B88EC4); }
-.milestone-icon.m50 { background: linear-gradient(135deg, #B66A48, #D49573); }
+.milestone-icon.m1  { background: linear-gradient(135deg, #7B9B6E, #A0C098); }
+.milestone-icon.m5  { background: linear-gradient(135deg, #3D8B3D, #6BAE6B); }
+.milestone-icon.m10 { background: linear-gradient(135deg, #4A8A4A, #5BA05B); }
+.milestone-icon.m25 { background: linear-gradient(135deg, #3D7A3D, #4D944D); }
+.milestone-icon.m50 { background: linear-gradient(135deg, #306830, #408040); }
 .milestone-body { flex: 1; }
 .milestone-title { font-size: 17px; font-weight: 800; color: var(--color-text-primary); }
 .milestone-desc { font-size: 14px; color: var(--color-text-secondary); line-height: 1.5; margin-top: 3px; }
@@ -2535,6 +2536,30 @@ body.booting::after {
   cursor: pointer; transition: background .15s;
 }
 .reflection-prompt .r-send:active { background: var(--raw-clay-200); }
+
+/* ── 反思确认发送条 ── */
+.r-confirm-bar {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 10px; padding: 8px 12px;
+  background: var(--raw-sage-100);
+  border-radius: var(--radius-sm);
+  animation: fbLayerIn .25s ease-out both;
+}
+.r-confirm-text {
+  font-size: 13px; color: var(--color-text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.r-confirm-btn {
+  background: var(--raw-sage-500);
+  border: none; border-radius: 16px;
+  padding: 6px 16px;
+  font-size: 13px; font-weight: 600;
+  color: var(--raw-white);
+  cursor: pointer; transition: background .15s;
+  flex-shrink: 0;
+}
+.r-confirm-btn:active { background: var(--raw-sage-700); }
+
 .reflection-response {
   margin-top: 8px;
   display: none;
@@ -2917,11 +2942,11 @@ body.booting::after {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: linear-gradient(135deg, #C97D5B, #D49570);
+  background: linear-gradient(135deg, #5B9B5B, #7BB87B);
   color: #fff;
   padding: 14px 24px 14px 18px;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(201, 125, 91, 0.35), 0 2px 8px rgba(0,0,0,.1);
+  box-shadow: 0 8px 32px rgba(91, 155, 91, 0.35), 0 2px 8px rgba(0,0,0,.1);
   transition: top .6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .4s ease;
   max-width: calc(100vw - 40px);
   width: auto;

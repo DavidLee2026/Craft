@@ -485,30 +485,22 @@ MAX_VISIBLE_LEVEL = 5
 # 供 /api/themes 与 /api/today-theme 使用，与 RECOMMENDATION_POOL 互补：
 # RECOMMENDATION_POOL 偏「大师关联 + 长描述」，THEME_LIBRARY 偏「纯主题 + 难度筛选」。
 THEME_LIBRARY = [
-    # 入门 - 简单几何形体和日常物品
+    # 入门 - 基础几何形状 + 日常物品（精简到 4 个）
     {"id": "cup", "title": "画一个杯子", "difficulty": "beginner", "category": "日常物品", "hint": "圆柱体加弧线把手", "icon": "☕"},
     {"id": "apple", "title": "画一个苹果", "difficulty": "beginner", "category": "日常物品", "hint": "球体加凹陷的顶部", "icon": "🍎"},
-    {"id": "book", "title": "画一本书", "difficulty": "beginner", "category": "日常物品", "hint": "长方体透视", "icon": "📖"},
     {"id": "ball", "title": "画一个球", "difficulty": "beginner", "category": "几何形体", "hint": "圆形加明暗过渡", "icon": "⚪"},
-    {"id": "box", "title": "画一个纸盒", "difficulty": "beginner", "category": "几何形体", "hint": "立方体三点透视", "icon": "📦"},
     {"id": "leaf", "title": "画一片树叶", "difficulty": "beginner", "category": "自然", "hint": "叶脉的对称线条", "icon": "🍃"},
-    {"id": "mug", "title": "画一个马克杯", "difficulty": "beginner", "category": "日常物品", "hint": "比杯子更粗的把手", "icon": "🥤"},
 
-    # 进阶 - 组合形体和有质感的物体
-    {"id": "shoe", "title": "画一只鞋", "difficulty": "intermediate", "category": "日常物品", "hint": "曲线和体积感的结合", "icon": "👟"},
+    # 进阶 - 结构组合 + 自然形态（精简到 4 个）
     {"id": "hand", "title": "画一只手", "difficulty": "intermediate", "category": "人体", "hint": "手掌的几何概括和手指关节", "icon": "✋"},
     {"id": "chair", "title": "画一把椅子", "difficulty": "intermediate", "category": "家具", "hint": "透视和结构线", "icon": "🪑"},
     {"id": "flower", "title": "画一朵花", "difficulty": "intermediate", "category": "自然", "hint": "花瓣的层叠和旋转", "icon": "🌸"},
-    {"id": "glass", "title": "画一个玻璃杯", "difficulty": "intermediate", "category": "日常物品", "hint": "透明质感和反光", "icon": "🥛"},
-    {"id": "lamp", "title": "画一盏台灯", "difficulty": "intermediate", "category": "日常物品", "hint": "几何组合和光影", "icon": "💡"},
     {"id": "tree", "title": "画一棵树", "difficulty": "intermediate", "category": "自然", "hint": "树干结构和树冠体积", "icon": "🌳"},
 
-    # 挑战 - 复杂场景和人体
+    # 挑战 - 完整场景 + 人体（精简到 4 个）
     {"id": "building", "title": "画一栋建筑", "difficulty": "advanced", "category": "建筑", "hint": "两点透视和细节取舍", "icon": "🏠"},
     {"id": "portrait", "title": "画一张人脸", "difficulty": "advanced", "category": "人体", "hint": "三庭五眼比例", "icon": "👤"},
     {"id": "landscape", "title": "画一处风景", "difficulty": "advanced", "category": "风景", "hint": "近中远三景层次", "icon": "🏞️"},
-    {"id": "fabric", "title": "画一块布料", "difficulty": "advanced", "category": "质感", "hint": "褶皱的明暗变化", "icon": "🧵"},
-    {"id": "still_life", "title": "画一组静物组合", "difficulty": "advanced", "category": "组合", "hint": "3件物品的构图关系", "icon": "🎨"},
     {"id": "animal", "title": "画一只动物", "difficulty": "advanced", "category": "动物", "hint": "骨骼结构和毛发质感", "icon": "🐱"},
 ]
 
@@ -1822,6 +1814,9 @@ def api_reset():
     for f in IMAGES_DIR.glob("*"):
         if f.is_file():
             f.unlink()
+    # 清空社区帖子（否则残留帖子引用已删除的图片）
+    if COMMUNITY_FILE.exists():
+        save_community_posts([])
     return jsonify({"ok": True, "message": "所有数据已清空，刷新页面后重新开始"})
 
 
@@ -1856,6 +1851,55 @@ def api_tracking_stats():
         "total_users": stats["total_users"],
         "recent_events": recent,
     })
+
+
+@app.route("/api/reflection", methods=["POST"])
+def api_reflection():
+    """用户画完画后写下反思，AI 给予个性化的回应（SSE 流式）。
+
+    前端 ``sendReflection()`` 发送用户反思文本+主题，
+    后端以 SSE 流式返回 AI 生成的单句回复（逐字推送），让用户立即看到内容不断出现。
+    """
+    data = request.get_json() or {}
+    user_text = (data.get("text") or "").strip()
+    subject = (data.get("subject") or "这次画画").strip()
+
+    if not user_text:
+        return jsonify({"reply": "嗯，你说了什么吗？我好像没看到 😅"})
+
+    def generate():
+        try:
+            stream = client.chat.completions.create(
+                model=ARK_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "你是小绘，一个温和耐心的绘画陪伴者。用户刚画完画写了句反思，"
+                            "你用简短的一句话回应 ta——针对具体内容、语气自然、不加 emoji、不问问题。"
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": f"主题：{subject}\n用户说：「{user_text}」",
+                    },
+                ],
+                max_tokens=50,
+                temperature=0.8,
+                stream=True,
+            )
+            for chunk in stream:
+                token = chunk.choices[0].delta.content or ""
+                if token:
+                    yield f"data: {json.dumps({'token': token})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'fallback', 'text': '嗯，我听到了。每次进步都值得记下来 ☺️'})}\n\n"
+
+    resp = Response(generate(), mimetype="text/event-stream")
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["X-Accel-Buffering"] = "no"
+    return resp
 
 
 @app.route("/data/<path:filename>")
