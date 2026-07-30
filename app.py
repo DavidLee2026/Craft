@@ -535,6 +535,25 @@ def save_records(records: list[dict]):
         json.dump(records, f, ensure_ascii=False, indent=2)
 
 
+# ── 社区数据管理 ──
+COMMUNITY_FILE = DATA_DIR / "community.json"
+
+
+def load_community_posts() -> list[dict]:
+    if COMMUNITY_FILE.exists():
+        try:
+            with open(COMMUNITY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+
+def save_community_posts(posts: list[dict]):
+    with open(COMMUNITY_FILE, "w", encoding="utf-8") as f:
+        json.dump(posts, f, ensure_ascii=False, indent=2)
+
+
 def load_profile() -> dict:
     if USER_PROFILE_FILE.exists():
         with open(USER_PROFILE_FILE, "r", encoding="utf-8") as f:
@@ -915,24 +934,24 @@ def _build_analyze_prompt(
         "  \"layers\": [\n"
         "    {\n"
         "      \"type\": \"identify\",\n"
-        f"      \"content\": \"先认出画的是什么（物体/人物/场景），表现出你看懂了。然后真诚地夸一个具体的亮点（线条、构图、造型、用笔等，不要虚构'观察'）。称呼用户为{user_name}。1-2句话。必须用 **加粗** 强调关键技巧或优点，如 **排线**、**透视**、**间距控制得很好**。每层最多1处加粗。\"\n"
+        f"      \"content\": \"先认出画的是什么（物体/人物/场景），表现出你看懂了。然后真诚地夸一个具体的亮点（线条、构图、造型、用笔等，不要虚构'观察'）。可以补充你对这幅画的第一印象或感受。称呼用户为{user_name}。2-3句话，写得有细节有温度，不要干巴巴。必须用 **加粗** 强调关键技巧或优点，如 **排线**、**透视**、**间距控制得很好**。每层最多1处加粗。\"\n"
         "    },\n"
         "    {\n"
         '      "type": "observe",\n'
-        '      "content": "再指出你在画里注意到的具体细节（某个局部的处理方式、线条走向、比例关系、用笔特点等），让用户感觉到你真的很仔细看了。1-2句话。注意：不要说\'你观察到了XX\'——用户可能是凭记忆/想象画的，说\'我注意到你的XX处理很特别\'。"\n'
+        '      "content": "再指出你在画里注意到的具体细节（某个局部的处理方式、线条走向、比例关系、用笔特点等），让用户感觉到你真的很仔细看了。可以多指出1-2个具体细节，让用户感受到你真的仔细看了。2-3句话，具体不空洞。注意：不要说\'你观察到了XX\'——用户可能是凭记忆/想象画的，说\'我注意到你的XX处理很特别\'。"\n'
         "    },\n"
         "    {\n"
         '      "type": "progress",\n'
-        '      "content": "如果有进步就提及（对比历史画作），否则说\'第一次画这个题材，能画成这样很不错\'。"\n'
+        '      "content": "如果有进步就具体提及进步在哪里（对比历史画作），否则说\'第一次画这个题材，能画成这样很不错\'。可以多说说你看到的成长痕迹。"\n'
         "    },\n"
         "    {\n"
         '      "type": "suggestion",\n'
-        '      "content": "一个具体可操作的技巧建议。只给一条，不超过一条。如果用到术语必须紧跟大白话解释。",\n'
+        '      "content": "一个具体可操作的技巧建议，可以说得详细一些，让用户知道怎么改。只给一条，不超过一条。如果用到术语必须紧跟大白话解释。",\n'
         '      "tip": "可选：详细的技巧说明或小贴士，会以 callout 框展示。没有就不填或 null。"\n'
         "    },\n"
         "    {\n"
         '      "type": "encourage",\n'
-        '      "content": "以真诚的鼓励收尾，并自然地引出下次可以尝试的方向（如\'下次可以试试画XX，会有新的发现\'）。语气成熟自然，像朋友间的建议，不要用哄小孩的语气。1-2句话。"\n'
+        '      "content": "以真诚的鼓励收尾，并自然地引出下次可以尝试的方向（如\'下次可以试试画XX，会有新的发现\'）。语气成熟自然，像朋友间的建议，不要用哄小孩的语气。可以结合用户这次画的内容，给出更有个性化的鼓励和期待。2-3句话。"\n'
         "    }\n"
         "  ],\n"
         '  "next_hint": "对下次绘画的自然引导，可选。如\'下次可以试试画桌上的马克杯\'。不超过15字。语气成熟，不要用\'要不要\'句式。没有则填null。",\n'
@@ -943,7 +962,7 @@ def _build_analyze_prompt(
         "只填这幅画真正涉及到的术语（1-2个为佳）。如果没有术语，留空对象 {}。\n\n"
         "严格的规则：\n"
         "- layers 必须有 5 个，按顺序：identify → observe → progress → suggestion → encourage\n"
-        "- 每层 content 1-2 句话，不长不短\n"
+        "- 每层 content 2-3 句话，写得有细节有温度，不要太简短\n"
         f"- 称呼用户为{user_name}，让对话有亲密感\n"
         "- 评价画作内容本身，不说照片质量或光线\n"
         "- 识别内容时严谨第一：宁可说得模糊（'看起来像一个人形/一个圆形物体'），也绝不说错\n"
@@ -980,9 +999,37 @@ def _sse_event(data: dict) -> str:
 
 
 # 用于在流式输出中增量提取「已完成的 layer 对象」
-_LAYER_REGEX = re.compile(
-    r'\{"type":\s*"(identify|observe|progress|suggestion|encourage)"[^}]*\}'
-)
+# 使用 JSONDecoder.raw_decode 代替正则，正确处理 content 内含 } 的场景
+_json_decoder = json.JSONDecoder()
+_LAYER_TYPES = ("identify", "observe", "progress", "suggestion", "encourage")
+
+
+def _extract_complete_layers(accumulated: str, seen_count: int = 0) -> list[dict]:
+    """从累积文本中提取完整的 layer JSON 对象。
+
+    用 JSONDecoder.raw_decode 逐个尝试解析，正确处理字符串内的 ``}`` 等特殊字符。
+    只返回 ``seen_count`` 之后新增的 layer（避免重复）。
+    """
+    results = []
+    i = 0
+    found = 0
+    while i < len(accumulated):
+        idx = accumulated.find('{"type"', i)
+        if idx == -1:
+            break
+        try:
+            obj, consumed = _json_decoder.raw_decode(accumulated[idx:])
+            if isinstance(obj, dict) and obj.get("type") in _LAYER_TYPES:
+                found += 1
+                if found > seen_count:
+                    results.append(obj)
+                i = idx + consumed
+            else:
+                i = idx + 1
+        except json.JSONDecodeError:
+            # JSON 还不完整，跳过继续搜索
+            i = idx + 1
+    return results
 
 
 def analyze_drawing_stream(
@@ -1022,8 +1069,15 @@ def analyze_drawing_stream(
 
     t0 = time.time()
     accumulated = ""
-    seen_layer_strs: list[str] = []   # 已发送过的 layer 原文，避免重复
     streamed_layers: list[dict] = []  # 已发送的 layer dict
+    sent_layer_count = 0               # 已发送的 layer 数（用于增量提取）
+    first_chunk_time = None
+
+    # ── 首层秒出：立即发送一条"第一印象"消息，让用户不用干等 ──
+    yield _sse_event({
+        "type": "first_impression",
+        "message": "小绘正在仔细看你的画…",
+    })
 
     try:
         stream = client.chat.completions.create(
@@ -1052,27 +1106,33 @@ def analyze_drawing_stream(
             if not chunk.choices:
                 continue
             delta = chunk.choices[0].delta
+
+            # 记录首个 chunk 到达时间（用于诊断延迟）
+            if first_chunk_time is None:
+                first_chunk_time = time.time() - t0
+                print(f"[stream] 首个 chunk 到达: {first_chunk_time:.1f}s", flush=True)
+
+            # 处理 reasoning_content（思考链）— 不用于 layer 提取，仅记录
+            reasoning = getattr(delta, "reasoning_content", None)
+            if reasoning:
+                print(f"[stream] reasoning chunk ({len(reasoning)} chars)", flush=True)
+
             piece = getattr(delta, "content", None)
             if not piece:
                 continue
             accumulated += piece
 
-            # 用正则增量提取已完成的 layer 对象
-            for match in _LAYER_REGEX.finditer(accumulated):
-                layer_str = match.group(0)
-                if layer_str in seen_layer_strs:
-                    continue
-                try:
-                    layer_obj = json.loads(layer_str)
-                except json.JSONDecodeError:
-                    # 正则切到的片段可能不完整（content 中含 } 等），跳过，
-                    # 最终完整 JSON 解析会补全。
-                    continue
-                seen_layer_strs.append(layer_str)
+            # 用 JSONDecoder 增量提取已完成的 layer 对象
+            new_layers = _extract_complete_layers(accumulated, sent_layer_count)
+            for layer_obj in new_layers:
+                sent_layer_count += 1
                 streamed_layers.append(layer_obj)
+                layer_time = time.time() - t0
+                print(f"[stream] layer {sent_layer_count} ({layer_obj.get('type')}) sent at {layer_time:.1f}s", flush=True)
                 yield _sse_event({"type": "layer", "layer": layer_obj})
 
         elapsed = time.time() - t0
+        print(f"[stream] LLM 完成，耗时 {elapsed:.1f}s，共 {len(streamed_layers)} 层", flush=True)
     except Exception as e:
         # LLM API 失败时，仍保存记录（避免数据丢失），反馈内容为错误提示
         elapsed = time.time() - t0
@@ -1086,6 +1146,7 @@ def analyze_drawing_stream(
                 "feedback_json": None,
                 "milestone": milestone,
                 "note": record_context.get("note", ""),
+                "theme": record_context.get("theme", ""),
                 "elapsed_s": round(elapsed, 1),
                 "timestamp": record_context.get("timestamp", ""),
             }
@@ -1124,7 +1185,7 @@ def analyze_drawing_stream(
     except (json.JSONDecodeError, TypeError):
         pass
 
-    # 若正则没抓全但完整 JSON 解析出了更多层，补发遗漏的 layer 事件
+    # 若流式提取没抓全但完整 JSON 解析出了更多层，补发遗漏的 layer 事件
     sent_types = {l.get("type") for l in streamed_layers}
     for layer in complete_layers:
         if layer.get("type") not in sent_types:
@@ -1144,6 +1205,7 @@ def analyze_drawing_stream(
             "feedback_json": feedback_json,
             "milestone": milestone,
             "note": record_context.get("note", ""),
+            "theme": record_context.get("theme", ""),
             "elapsed_s": elapsed_rounded,
             "timestamp": record_context.get("timestamp", ""),
         }
@@ -1281,12 +1343,14 @@ def api_analyze_stream():
     history = [r["feedback"] for r in past_records[-2:]] if past_records else None
     total = len(past_records) + 1
     note = request.form.get("note", "").strip()[:200]
+    theme = request.form.get("theme", "").strip()[:100]
 
     record_context = {
         "record_id": record_id,
         "image_relpath": f"images/{filename}",
         "timestamp": timestamp,
         "note": note,
+        "theme": theme,
         "profile": profile,
     }
 
@@ -1316,6 +1380,139 @@ def api_timeline():
     records = load_records()
     records.reverse()
     return jsonify({"records": records})
+
+
+@app.route("/api/record/<record_id>", methods=["DELETE"])
+def api_delete_record(record_id):
+    """删除指定画作记录及其图片文件。"""
+    records = load_records()
+    record = next((r for r in records if r.get("id") == record_id), None)
+    if not record:
+        return jsonify({"error": "找不到该记录"}), 404
+
+    # 删除图片文件
+    image_path = record.get("image", "")
+    if image_path:
+        full_path = IMAGES_DIR / image_path
+        if full_path.exists():
+            try:
+                full_path.unlink()
+            except Exception:
+                pass
+
+    records.remove(record)
+    save_records(records)
+    log_event("record_deleted", {"record_id": record_id})
+    return jsonify({"ok": True})
+
+
+# ── 社区 API ──────────────────────────────────────────
+
+@app.route("/api/community")
+def api_community():
+    """获取社区画作列表（按时间倒序）。"""
+    posts = load_community_posts()
+    posts.sort(key=lambda p: p.get("timestamp", ""), reverse=True)
+    return jsonify({"posts": posts})
+
+
+@app.route("/api/community/share", methods=["POST"])
+def api_community_share():
+    """将自己的画作分享到社区。
+
+    接收 record_id，从用户记录中找到对应画作，复制到社区列表。
+    """
+    record_id = request.json.get("record_id", "").strip()
+    if not record_id:
+        return jsonify({"error": "缺少 record_id"}), 400
+
+    records = load_records()
+    record = next((r for r in records if r.get("id") == record_id), None)
+    if not record:
+        return jsonify({"error": "找不到该画作记录"}), 404
+
+    profile = load_profile()
+    posts = load_community_posts()
+
+    # 避免重复分享
+    if any(p.get("source_record_id") == record_id for p in posts):
+        return jsonify({"error": "这幅画已经分享过了"}), 409
+
+    # 提取反馈摘要（取第一层或前 60 字）
+    feedback_summary = ""
+    if record.get("feedback_json") and record["feedback_json"].get("layers"):
+        first_layer = record["feedback_json"]["layers"][0]
+        feedback_summary = (first_layer.get("content") or "")[:80]
+    elif record.get("feedback"):
+        feedback_summary = record["feedback"][:80]
+
+    post = {
+        "id": str(uuid.uuid4())[:8],
+        "source_record_id": record_id,
+        "image": record.get("image", ""),
+        "author": profile.get("name", "小伙伴"),
+        "theme": record.get("theme", ""),
+        "feedback_summary": feedback_summary,
+        "timestamp": datetime.now().isoformat(),
+        "likes": 0,
+        "liked_by": [],
+        "comments": [],
+    }
+    posts.append(post)
+    save_community_posts(posts)
+    log_event("community_share", {"record_id": record_id, "post_id": post["id"]})
+    return jsonify({"ok": True, "post": post})
+
+
+@app.route("/api/community/like/<post_id>", methods=["POST"])
+def api_community_like(post_id):
+    """点赞社区画作（每个用户只能点一次）。"""
+    profile = load_profile()
+    user_name = profile.get("name", "小伙伴")
+
+    posts = load_community_posts()
+    post = next((p for p in posts if p.get("id") == post_id), None)
+    if not post:
+        return jsonify({"error": "找不到该帖子"}), 404
+
+    liked_by = post.get("liked_by", [])
+    if user_name in liked_by:
+        return jsonify({"error": "你已经点过赞了", "already_liked": True, "likes": post["likes"]}), 409
+
+    liked_by.append(user_name)
+    post["liked_by"] = liked_by
+    post["likes"] = post.get("likes", 0) + 1
+    save_community_posts(posts)
+    return jsonify({"ok": True, "likes": post["likes"], "already_liked": False})
+
+
+@app.route("/api/community/comment/<post_id>", methods=["POST"])
+def api_community_comment(post_id):
+    """评论社区画作。"""
+    profile = load_profile()
+    user_name = profile.get("name", "小伙伴")
+    content = request.json.get("content", "").strip()
+
+    if not content:
+        return jsonify({"error": "评论内容不能为空"}), 400
+    if len(content) > 500:
+        return jsonify({"error": "评论内容过长，最多500字"}), 400
+
+    posts = load_community_posts()
+    post = next((p for p in posts if p.get("id") == post_id), None)
+    if not post:
+        return jsonify({"error": "找不到该帖子"}), 404
+
+    comment = {
+        "id": str(uuid.uuid4())[:8],
+        "author": user_name,
+        "content": content,
+        "timestamp": datetime.now().isoformat(),
+    }
+    post["comments"] = post.get("comments", [])
+    post["comments"].append(comment)
+    save_community_posts(posts)
+    return jsonify({"ok": True, "comment": comment, "total": len(post["comments"])})
 
 
 @app.route("/api/stats")
@@ -1396,11 +1593,22 @@ def api_stats():
         week_counts.append(count)
     weekly_avg = round(sum(week_counts) / 7, 1)
 
+    # 用户水平标签（3 级简化版，用于前端展示）
+    stage = get_drawing_stage(total)
+    STAGE_LABELS = {
+        "新手期": "基础", "入门期": "基础",
+        "成长期": "进阶", "进阶期": "进阶",
+        "熟练期": "熟练",
+    }
+    stage_label = STAGE_LABELS.get(stage, "基础")
+
     return jsonify({
         "streak": current_streak,
         "max_streak": max_streak,
         "total": total,
         "level": level_data,
+        "stage": stage,
+        "stage_label": stage_label,
         "weekly_avg": weekly_avg,
         "dominant_skill": dominant_skill,
         "profile": {
@@ -1672,4 +1880,4 @@ if __name__ == "__main__":
 
     print(f"\n🚀 启动服务: http://0.0.0.0:5001")
     print(f"   手机访问: http://<本机IP>:5001")
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true')

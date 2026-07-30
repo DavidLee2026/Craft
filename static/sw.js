@@ -4,11 +4,11 @@
 //   - 画作图片 /data/: Network First, fallback Cache
 //   - AI 接口 /api/: Network Only（不缓存）
 
-const CACHE_NAME = 'meirihui-v9';
+const CACHE_NAME = 'meirihui-v30';
 const APP_SHELL = [
   '/',
-  '/static/css/style.css?v=20260730v19',
-  '/static/js/app.js?v=20260730v19',
+  '/static/css/style.css?v=20260730v30',
+  '/static/js/app.js?v=20260730v29',
   '/manifest.json',
 ];
 

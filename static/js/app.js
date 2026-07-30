@@ -6,6 +6,28 @@ let waitingTimer = null;
 let currentDrawingSubject = '这次';  // 当前画作主题，用于反思提示文案
 let currentRecordId = null;  // 当前反馈的记录 ID，用于保存反思文字
 
+// 反馈模式：companion（陪伴模式）/ concise（精简模式）
+let feedbackMode = localStorage.getItem('feedback_mode') || 'companion';
+
+function updateFeedbackModeTag() {
+  const tag = document.getElementById('feedbackModeTag');
+  if (!tag) return;
+  if (feedbackMode === 'concise') {
+    tag.textContent = '⚡';
+    tag.title = '当前为精简模式，点击切换为陪伴模式';
+  } else {
+    tag.textContent = '🤖';
+    tag.title = '当前为陪伴模式，点击切换为精简模式';
+  }
+}
+
+function toggleFeedbackMode() {
+  feedbackMode = feedbackMode === 'companion' ? 'concise' : 'companion';
+  localStorage.setItem('feedback_mode', feedbackMode);
+  updateFeedbackModeTag();
+  showToast(feedbackMode === 'companion' ? '已切换到陪伴模式' : '已切换到精简模式', 'info');
+}
+
 // 防止浏览器恢复滚动位置，确保每次进入都从顶部开始
 if ('scrollRestoration' in history) {
   history.scrollRestoration = 'manual';
@@ -37,6 +59,98 @@ function track(event, metadata) {
   }).catch(() => {});
 }
 
+// ─── 轻提示 Toast ───
+let toastTimer = null;
+function showToast(message) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add('visible');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('visible'), 2500);
+}
+
+// ─── AI 反馈头部副标题（随机变化，让小绘更有人情味） ───
+const AI_SUBTITLES = [
+  '仔细看了你的画，有些想说的',
+  '看完了你的画，给到一些建议',
+  '认真看完了，想和你聊聊这幅画',
+  '你的画我看了好几遍，有发现',
+  '看完啦，有些地方画得真不错',
+  '仔细欣赏完了，来聊聊吧',
+  '小绘看了你的画，想分享一些感受',
+  '小绘仔细看完了每一个细节，给你一些反馈',
+  '小绘认真看过了，有几个亮点想告诉你',
+  '小绘盯着你的画看了好一会儿，有话想说',
+];
+function setAiSubtitle() {
+  const el = document.getElementById('aiSubtitleEnhanced');
+  if (el) {
+    el.textContent = AI_SUBTITLES[Math.floor(Math.random() * AI_SUBTITLES.length)];
+  }
+}
+
+// ─── 里程碑判定（与后端 app.py get_milestone 逻辑同步） ───
+function getMilestone(total) {
+  const milestones = {
+    1:  { icon: '🎉', title: '第一张画', message: '记住这一刻——再伟大的画家也是从第一根线开始的。' },
+    5:  { icon: '🔥', title: '坚持 5 张', message: '大多数人在第 3 张就放弃了，你已经超过了 70% 的人。' },
+    10: { icon: '👑', title: '10 张里程碑', message: '翻看第一张和今天的对比——进步是真实存在的。' },
+    25: { icon: '💪', title: '25 张·习惯成自然', message: '你已经在不知不觉中养成了绘画习惯，这是最有价值的一步。' },
+    50: { icon: '🌟', title: '50 张·质变', message: "从'画出形状'到'画得像'，这 50 张见证了你的蜕变。" },
+  };
+  const m = milestones[total];
+  if (m) {
+    return { key: 'm' + total, number: total, desc: m.message, ...m };
+  }
+  if (total > 50 && total % 50 === 0) {
+    return {
+      key: 'm50', number: total, icon: '🌟',
+      title: total + ' 张',
+      desc: '你已经画了 ' + total + ' 张了！回看最初的线条和现在的对比，变化是看得见的。',
+    };
+  }
+  return null;
+}
+
+// ─── 成就弹窗（里程碑触发，游戏成就风格） ───
+let achievementTimer = null;
+function showAchievementPopup(milestone) {
+  let popup = document.getElementById('achievementPopup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'achievementPopup';
+    popup.className = 'achievement-popup';
+    document.body.appendChild(popup);
+  }
+  const shortCongrats = {
+    1: '迈出了第一步，继续画下去！',
+    5: '坚持就是胜利，保持节奏！',
+    10: '习惯已养成，画技在积累！',
+    25: '稳步提升中，每一张都算数！',
+    50: '从量变到质变，你做到了！'
+  };
+  popup.innerHTML = `
+    <div class="ach-icon">${milestone.icon || '🎉'}</div>
+    <div class="ach-body">
+      <div class="ach-title">${escapeHtml(milestone.title || '恭喜！')}</div>
+      <div class="ach-desc">${escapeHtml(shortCongrats[milestone.number] || '继续保持！')}</div>
+    </div>`;
+  popup.style.top = '';
+  popup.classList.add('visible');
+  if (achievementTimer) clearTimeout(achievementTimer);
+  achievementTimer = setTimeout(() => {
+    popup.classList.remove('visible');
+    // 延迟重置 top 到完全隐藏位置，等过渡动画完成
+    setTimeout(() => { popup.style.top = '-200px'; }, 600);
+  }, 4000);
+}
+
 // ─── Onboarding Data ───
 // v3.1：引导增强 — 情感化文案 + 实时预览 + 按钮状态联动
 const OB_STEPS = [
@@ -46,7 +160,7 @@ const OB_STEPS = [
     render: (d) => `
       <h2 class="brand-name">你好呀，我是<span class="highlight">小绘</span> 🎨</h2>
       <div class="sub warm">你叫什么名字？这样我能用心称呼你</div>
-      <input class="ob-input" id="obName" type="text" placeholder="输入你的名字" value="${d.name || ''}" maxlength="20" autofocus>
+      <input class="ob-input" id="obName" type="text" placeholder="输入你的名字" value="${d.name || ''}" maxlength="8" autofocus>
       <div class="ob-greeting-preview" id="obPreview"></div>
       <button class="ob-btn primary" id="obNext1" disabled onclick="obNext()">准备好了 →</button>
     `,
@@ -86,10 +200,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // 首次进入强制滚动到顶部
   window.scrollTo(0, 0);
   loadProfile();
-  loadStats();
+  loadStats(true);   // 初始化时显示欢迎回来
+  updateFeedbackModeTag();  // 初始化反馈模式标签
   loadTimeline();
   loadTodayTheme();
   loadThemeLibrary();
+  // 安全兜底：3 秒后强制移除 booting 状态，避免 API 异常时卡在空白页
+  setTimeout(() => document.body.classList.remove('booting'), 3000);
   // 注册 Service Worker（PWA）+ 监听更新
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').then(reg => {
@@ -163,6 +280,8 @@ async function obComplete() {
 
   // 关闭 onboarding
   document.getElementById('onboardingOverlay').classList.remove('visible');
+  // 移除 booting 状态
+  document.body.classList.remove('booting');
 
   // 显示过渡仪式
   const ritual = document.getElementById('ritualOverlay');
@@ -184,8 +303,6 @@ async function obComplete() {
     ritual.classList.remove('visible');
     document.body.style.overflow = '';
 
-    // 显示用户名
-    document.getElementById('userNameDisplay').textContent = userName;
     updateGreeting();
 
     // 添加首页迎接动画
@@ -228,7 +345,7 @@ async function setName() {
     <div class="confirm-icon">✏️</div>
     <div class="confirm-title">修改名字</div>
     <div class="confirm-desc">小绘该怎么称呼你呢？</div>
-    <input class="ob-input" id="setNameInput" type="text" placeholder="输入你的名字" value="${userName}" maxlength="20" style="margin-bottom:20px;text-align:center;">
+    <input class="ob-input" id="setNameInput" type="text" placeholder="输入你的名字" value="${userName}" maxlength="8" style="margin-bottom:20px;text-align:center;">
     <div class="confirm-actions">
       <button class="btn btn-md btn-cancel" onclick="closeConfirm()">取消</button>
       <button class="btn btn-md btn-primary" id="setNameOkBtn">保存</button>
@@ -253,11 +370,11 @@ async function setName() {
       await fetch('/api/profile', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name: newName.slice(0, 20)}),
+        body: JSON.stringify({name: newName.slice(0, 8)}),
       });
-      userName = newName.slice(0, 20);
-      document.getElementById('userNameDisplay').textContent = userName;
+      userName = newName.slice(0, 8);
       updateGreeting();
+      loadStats(false);
       closeConfirm();
       restoreConfirmDialog();
     } catch (e) {
@@ -302,7 +419,6 @@ async function loadProfile() {
     if (data.profile && data.profile.name) {
       userName = data.profile.name;
     }
-    document.getElementById('userNameDisplay').textContent = userName;
     const nameEl = document.getElementById('aiName');
     if (nameEl) nameEl.textContent = '小绘';
   } catch(e) {}
@@ -311,7 +427,10 @@ async function loadProfile() {
 }
 
 // ─── Stats & Onboarding Check ───
-async function loadStats() {
+// 标记：是否已显示过欢迎回来（页面生命周期内只显示一次）
+let welcomeBackShown = false;
+
+async function loadStats(showWelcomeBack = false) {
   let data = null;
   try {
     const res = await fetch(`${API_BASE}/api/stats`);
@@ -322,6 +441,7 @@ async function loadStats() {
       onboardingDone = true;
     }
 
+    // 徽章逻辑（确保总是有值，不会消失）
     if (data.streak >= 3) {
       el.textContent = '🔥 坚持了 ' + data.streak + ' 天';
       el.className = 'streak-badge streak-active';
@@ -335,48 +455,60 @@ async function loadStats() {
       el.textContent = '🎨 已画 ' + data.total + ' 张';
       el.className = 'streak-badge streak-new';
     } else {
-      el.className = 'streak-badge hidden';
+      // 没有画作时也显示一个友好的提示，而不是隐藏
+      el.textContent = '🌟 开始第一张画';
+      el.className = 'streak-badge streak-new';
     }
 
     updateGreeting();
   } catch (e) {
     console.error('loadStats error:', e);
+    // 即使失败也要移除 booting 状态，避免卡在空白页
   }
 
-  // 未完成 onboarding → 弹出引导
+  // 移除 booting 状态（首页可见）
+  document.body.classList.remove('booting');
+
+  // 未完成 onboarding → 立即弹出引导（不延迟）
   if (!onboardingDone) {
-    setTimeout(startOnboarding, 600);
+    startOnboarding();
     return;
   }
 
-  // 已完成 onboarding → 老用户首页迎接动画 + 欢迎回来提示
-  document.body.classList.add('welcome-animate');
-  setTimeout(() => document.body.classList.remove('welcome-animate'), 1200);
-
-  // 显示"欢迎回来"横幅（带鼓励语或名人名言）
-  if (data) {
-    showWelcomeBack(data);
+  // 已完成 onboarding → 老用户首页迎接动画 + 欢迎回来页面（仅首次且显式请求）
+  if (showWelcomeBack && !welcomeBackShown && onboardingDone) {
+    welcomeBackShown = true;
+    document.body.classList.add('welcome-animate');
+    setTimeout(() => document.body.classList.remove('welcome-animate'), 1200);
+    // API 成功用返回数据，失败用本地兜底
+    const statsData = data || { total: records.length, streak: 0 };
+    showWelcomeBack(statsData);
   }
 }
 
-// ─── 欢迎回来提示 ───
+// ─── 欢迎回来独立页面 ───
 function showWelcomeBack(statsData) {
-  const banner = document.getElementById('welcomeBackBanner');
-  if (!banner) return;
+  const page = document.getElementById('welcomeBackPage');
+  if (!page) return;
 
   const total = statsData.total || 0;
   const streak = statsData.streak || 0;
 
   // 根据用户状态选择欢迎语
   let title = `欢迎回来，${userName}`;
+  let icon = '🎨';
   if (streak >= 3) {
     title = `${userName}，你已经坚持 ${streak} 天了`;
+    icon = '🔥';
   } else if (total >= 10) {
-    title = `${userName}，又来画了，累计 ${total} 张`;
+    title = `${userName}，又来画了`;
+    icon = '✏️';
   } else if (total >= 1) {
-    title = `欢迎回来，${userName}，这次准备画什么？`;
+    title = `欢迎回来，${userName}`;
+    icon = '🎨';
   } else {
     title = `${userName}，开始你的第一张画吧`;
+    icon = '🌟';
   }
 
   // 鼓励语 / 名人名言池
@@ -396,14 +528,38 @@ function showWelcomeBack(statsData) {
   ];
   const quote = quotes[Math.floor(Math.random() * quotes.length)];
 
-  document.getElementById('wbTitle').textContent = title;
-  document.getElementById('wbQuote').textContent = quote;
+  document.getElementById('wbpTitle').textContent = title;
+  document.getElementById('wbpQuote').textContent = quote;
+  document.getElementById('wbpIcon').textContent = icon;
 
-  banner.classList.remove('hidden');
-  // 5 秒后自动收起
+  // 移除 booting 状态，确保欢迎回来页面可见（它在 #page-home 内部，booting 会隐藏父元素）
+  document.body.classList.remove('booting');
+
+  page.classList.add('visible');
+  document.body.style.overflow = 'hidden';
+
+  // 3 秒后自动消失（无需点击）
+  if (page._autoDismissTimer) clearTimeout(page._autoDismissTimer);
+  page._autoDismissTimer = setTimeout(() => {
+    dismissWelcomeBack();
+  }, 3000);
+}
+
+function dismissWelcomeBack() {
+  const page = document.getElementById('welcomeBackPage');
+  if (!page) return;
+  if (page._autoDismissTimer) {
+    clearTimeout(page._autoDismissTimer);
+    page._autoDismissTimer = null;
+  }
+  page.classList.add('exiting');
   setTimeout(() => {
-    banner.classList.add('hidden');
-  }, 6000);
+    page.classList.remove('visible');
+    page.classList.remove('exiting');
+    document.body.style.overflow = '';
+    // 滚动到顶部
+    window.scrollTo(0, 0);
+  }, 400);
 }
 
 // ─── 今日主题 ───
@@ -496,6 +652,23 @@ function selectTheme(themeId) {
   if (!theme) return;
   updateThemeCard(theme);
   currentThemeId = theme.id || '';
+
+  // 卡片淡入动画
+  const card = document.getElementById('themeToday');
+  if (card) {
+    card.style.animation = 'none';
+    void card.offsetWidth;
+    card.style.animation = 'fadeUp .4s var(--ease-out)';
+  }
+
+  // 滚动到顶部今日推荐卡片
+  setTimeout(() => {
+    const targetY = card ? card.getBoundingClientRect().top + window.pageYOffset - 60 : 0;
+    smoothScrollTo(targetY, 500);
+  }, 100);
+
+  // 显示轻提示
+  showToast(`已切换到「${theme.title}」，点击上方开始画吧`);
 }
 
 async function changeTodayTheme() {
@@ -536,6 +709,9 @@ function switchTab(tab) {
   if (tab === 'timeline') {
     track('timeline_viewed', {});
     renderTimeline();
+  } else if (tab === 'community') {
+    track('community_viewed', {});
+    renderCommunityFeed();
   }
 }
 
@@ -744,20 +920,33 @@ async function uploadImage(file) {
   document.getElementById('nextRec').classList.remove('visible');
   document.getElementById('reflectionArea').classList.remove('visible');
   document.getElementById('reflectionResponse').classList.remove('visible');
+  const customRowEl = document.getElementById('reflectionCustomRow');
+  if (customRowEl) customRowEl.style.display = 'none';
+  document.querySelectorAll('.r-quick-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('fbActions').classList.remove('visible');
   document.getElementById('error').classList.remove('visible');
 
-  // 隐藏用户名标签（生成期间不显示）
-  document.getElementById('userNameDisplay').style.display = 'none';
-
   // 简洁等待提示（流式反馈会逐步替代）
   showSimpleWaiting();
+
+  // 滚动到 loading 区域底部，确保完全可见
+  setTimeout(() => {
+    const waitingArea = document.getElementById('waitingArea');
+    if (waitingArea) {
+      const rect = waitingArea.getBoundingClientRect();
+      const scrollTop = window.pageYOffset + rect.bottom - window.innerHeight + 24;
+      window.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
+    }
+  }, 80);
 
   // 客户端压缩
   const compressedFile = await compressImage(file);
 
   const formData = new FormData();
   formData.append('image', compressedFile);
+  // 附带当前主题信息
+  const themeTitle = document.getElementById('themeTodayTitle')?.textContent || '';
+  if (themeTitle) formData.append('theme', themeTitle);
 
   try {
     const response = await fetch(`${API_BASE}/api/analyze/stream`, {
@@ -775,8 +964,23 @@ async function uploadImage(file) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    const pendingLayers = [];   // 先收集所有 layer，后续逐层延迟渲染
+    const receivedLayers = [];   // 实时渲染，不再缓存
     let completeData = null;
+    let containerReady = false;
+
+    // 确保反馈容器已准备好（仅第一次调用时初始化）
+    function ensureContainerReady() {
+      if (containerReady) return;
+      containerReady = true;
+      stopSimpleWaiting();
+      const container = document.getElementById('feedbackEnhanced');
+      container.classList.add('visible');
+      document.getElementById('aiNameEnhanced').textContent = '小绘';
+      setAiSubtitle();
+      document.getElementById('milestoneSlot').innerHTML = '';
+      document.getElementById('fbDepthLayer').innerHTML = '';
+      document.getElementById('fbLayersContainer').innerHTML = '';
+    }
 
     while (true) {
       const { done, value } = await reader.read();
@@ -791,8 +995,28 @@ async function uploadImage(file) {
         let data;
         try { data = JSON.parse(evt.slice(6)); } catch (e) { continue; }
 
-        if (data.type === 'layer') {
-          pendingLayers.push(data.layer);
+        if (data.type === 'first_impression') {
+          // ── 首层秒出：立即显示第一印象，不用干等 ──
+          stopSimpleWaiting();
+          const container = document.getElementById('feedbackEnhanced');
+          container.classList.add('visible');
+          document.getElementById('aiNameEnhanced').textContent = '小绘';
+          setAiSubtitle();
+          document.getElementById('milestoneSlot').innerHTML = '';
+          document.getElementById('fbDepthLayer').innerHTML = '';
+          document.getElementById('fbLayersContainer').innerHTML = `
+            <div class="first-impression">
+              <div class="first-impression-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="first-impression-text">${data.message}</div>
+            </div>`;
+          containerReady = false;  // 不标记为 ready，让首个 layer 的 ensureContainerReady 清除第一印象
+        } else if (data.type === 'layer') {
+          // ✅ 真流式：收到 layer 立即渲染，不等其他层
+          ensureContainerReady();
+          receivedLayers.push(data.layer);
+          renderStreamingLayer(data.layer, receivedLayers.length);
         } else if (data.type === 'complete') {
           completeData = data;
         } else if (data.type === 'error') {
@@ -803,39 +1027,16 @@ async function uploadImage(file) {
       }
     }
 
-    // 流结束 → 逐层延迟渲染（每层间隔 700ms，营造逐步出现的效果）
-    let renderError = null;
-    if (pendingLayers.length > 0) {
-      stopSimpleWaiting();
-      // 准备增强反馈容器
-      const container = document.getElementById('feedbackEnhanced');
-      container.classList.add('visible');
-      document.getElementById('aiNameEnhanced').textContent = '小绘';
-      document.getElementById('milestoneSlot').innerHTML = '';
-      document.getElementById('fbDepthLayer').innerHTML = '';
-      document.getElementById('fbLayersContainer').innerHTML = '';
-
-      const receivedLayers = [];
-      for (let i = 0; i < pendingLayers.length; i++) {
-        receivedLayers.push(pendingLayers[i]);
-        renderStreamingLayer(pendingLayers[i], receivedLayers.length);
-        // 除最后一层外，等待 1000ms 再渲染下一层（柔和节奏，给用户阅读时间）
-        if (i < pendingLayers.length - 1) {
-          await new Promise(r => setTimeout(r, 1000));
-        }
-      }
-
-      // 所有层渲染完毕 → 处理 complete 事件（独立 try-catch，避免误报网络错误）
+    // 流结束 → 处理 complete 事件
+    if (receivedLayers.length > 0) {
       if (completeData) {
         try {
           finalizeStreamingFeedback(completeData, receivedLayers);
         } catch (e) {
           console.error('finalizeStreamingFeedback error:', e);
-          // 安全兜底：即使 finalize 失败，也要显示反思区和操作按钮
           ensurePostFeedbackUI(completeData.record);
         }
-        // 后续 API 调用独立处理，不影响已显示的反馈
-        try { await loadStats(); } catch (e) {}
+        try { await loadStats(false); } catch (e) {}   // 上传后静默刷新，不显示欢迎回来
         try { await loadTimeline(); } catch (e) {}
         try { await loadTodayTheme(); } catch (e) {}
       }
@@ -848,14 +1049,13 @@ async function uploadImage(file) {
         console.error('finalizeStreamingFeedback error:', e);
         ensurePostFeedbackUI(completeData.record);
       }
-      try { await loadStats(); } catch (e) {}
+      try { await loadStats(false); } catch (e) {}   // 上传后静默刷新
       try { await loadTimeline(); } catch (e) {}
       try { await loadTodayTheme(); } catch (e) {}
     } else {
       // 没收到任何 layer 也没收到 complete
       stopSimpleWaiting();
       showError('分析超时，请重试');
-      // 即使失败也显示操作按钮，让用户可以重试
       ensurePostFeedbackUI({id: 'fallback_' + Date.now()});
     }
 
@@ -863,9 +1063,9 @@ async function uploadImage(file) {
     stopSimpleWaiting();
     showError('网络错误，请检查服务器是否在运行');
   } finally {
+    stopSimpleWaiting();
     document.getElementById('cameraInput').value = '';
     document.getElementById('uploadInput').value = '';
-    // 用户名标签保持隐藏（不再在 logo 旁显示）
   }
 }
 
@@ -937,12 +1137,17 @@ function renderStreamingLayer(layer, layerCount) {
 
   document.getElementById('fbLayersContainer').appendChild(div);
 
-  // 平滑滚动到最新层（使用更柔和的缓动和更长的时长）
-  setTimeout(() => {
-    const rect = div.getBoundingClientRect();
-    const targetY = window.pageYOffset + rect.top - window.innerHeight * 0.35;
-    smoothScrollTo(targetY, 700);
-  }, 150);
+  // 仅在第一层时平滑滚动到反馈区（锚点固定，不跟随每层文字移动）
+  if (layerCount === 1) {
+    setTimeout(() => {
+      const container = document.getElementById('feedbackEnhanced');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        const targetY = window.pageYOffset + rect.top - 12;
+        smoothScrollTo(targetY, 700);
+      }
+    }, 150);
+  }
 
   // 更新全局术语上下文
   if (layer.glossary_context) {
@@ -961,10 +1166,7 @@ function ensurePostFeedbackUI(record) {
     setTimeout(() => {
       const ra = document.getElementById('reflectionArea');
       if (ra) ra.classList.add('visible');
-      const ri = document.getElementById('reflectionInput');
-      if (ri) ri.value = '';
-      const rr = document.getElementById('reflectionResponse');
-      if (rr) rr.classList.remove('visible');
+      resetReflectionUI();
     }, 1000);
   } catch (e) {
     console.error('ensurePostFeedbackUI error:', e);
@@ -1009,14 +1211,17 @@ function finalizeStreamingFeedback(completeData, receivedLayers) {
   if (completeData.milestone || record.milestone) {
     const m = completeData.milestone || record.milestone;
     const mClass = `milestone-icon ${m.number <= 50 ? 'm' + m.number : 'm50'}`;
+    const cardClass = `milestone-card ${m.number <= 50 ? 'm' + m.number : 'm50'}`;
     document.getElementById('milestoneSlot').innerHTML = `
-      <div class="milestone-card">
+      <div class="${cardClass}">
         <div class="${mClass}">${m.icon}</div>
         <div class="milestone-body">
           <div class="milestone-title">${escapeHtml(m.title)}</div>
           <div class="milestone-desc">${escapeHtml(m.message)}</div>
         </div>
       </div>`;
+    // 触发顶部成就弹窗
+    showAchievementPopup(m);
   }
 
   // 下一幅推荐
@@ -1033,15 +1238,15 @@ function finalizeStreamingFeedback(completeData, receivedLayers) {
   // 反思交互区
   setTimeout(() => {
     document.getElementById('reflectionArea').classList.add('visible');
-    document.getElementById('reflectionInput').value = '';
+    resetReflectionUI();
     if (currentDrawingSubject === '这次') {
       const themeTitle = document.getElementById('themeTitle')?.textContent || '';
       if (themeTitle && themeTitle !== '画你想画的') {
         currentDrawingSubject = themeTitle.replace(/^画一个?/, '');
       }
     }
-    document.getElementById('reflectionInput').placeholder = `比如：${currentDrawingSubject}的形状这次画准了`;
-    document.getElementById('reflectionResponse').classList.remove('visible');
+    const input = document.getElementById('reflectionInput');
+    if (input) input.placeholder = `比如：${currentDrawingSubject}的形状这次画准了`;
   }, 1000);
 
   // 用户名标签保持隐藏
@@ -1054,9 +1259,14 @@ function showFeedback(record) {
 
   // 用户名标签保持隐藏
 
-  // 有 feedback_json → 渲染增强版 5 层反馈
+  // 有 feedback_json → 根据模式决定渲染方式
   if (record.feedback_json && record.feedback_json.layers && record.feedback_json.layers.length >= 4) {
-    renderEnhancedFeedback(record);
+    if (feedbackMode === 'concise') {
+      // 精简模式：用普通反馈容器显示简化文本
+      renderConciseFeedback(record);
+    } else {
+      renderEnhancedFeedback(record);
+    }
     return;
   }
 
@@ -1073,14 +1283,16 @@ function showFeedback(record) {
     if (record.milestone) {
       const m = record.milestone;
       const mClass = `milestone-icon ${m.number <= 50 ? 'm' + m.number : 'm50'}`;
+      const cardClass = `milestone-card ${m.number <= 50 ? 'm' + m.number : 'm50'}`;
       milestoneSlot.innerHTML = `
-        <div class="milestone-card">
+        <div class="${cardClass}">
           <div class="${mClass}">${m.icon}</div>
           <div class="milestone-body">
             <div class="milestone-title">${escapeHtml(m.title)}</div>
             <div class="milestone-desc">${escapeHtml(m.message)}</div>
           </div>
         </div>`;
+      showAchievementPopup(m);
     }
   }
 
@@ -1111,9 +1323,9 @@ function showFeedback(record) {
   // 显示反思交互区
   setTimeout(() => {
     document.getElementById('reflectionArea').classList.add('visible');
-    document.getElementById('reflectionInput').value = '';
-    document.getElementById('reflectionInput').placeholder = `比如：${currentDrawingSubject}的形状这次画准了`;
-    document.getElementById('reflectionResponse').classList.remove('visible');
+    resetReflectionUI();
+    const input = document.getElementById('reflectionInput');
+    if (input) input.placeholder = `比如：${currentDrawingSubject}的形状这次画准了`;
   }, 1000);
 }
 
@@ -1153,6 +1365,7 @@ function renderEnhancedFeedback(record) {
 
   // 设置头部
   document.getElementById('aiNameEnhanced').textContent = '小绘';
+  setAiSubtitle();
   if (record.elapsed_s) {
     const s = record.elapsed_s;
     document.getElementById('elapsedBadgeEnhanced').textContent = s < 10 ? `${s}s` : `${Math.round(s)}s`;
@@ -1163,8 +1376,9 @@ function renderEnhancedFeedback(record) {
   if (record.milestone) {
     const m = record.milestone;
     const mClass = `milestone-icon ${m.number <= 50 ? 'm' + m.number : 'm50'}`;
+    const cardClass = `milestone-card ${m.number <= 50 ? 'm' + m.number : 'm50'}`;
     document.getElementById('milestoneSlot').innerHTML = `
-      <div class="milestone-card">
+      <div class="${cardClass}">
         <div class="${mClass}">${m.icon}</div>
         <div class="milestone-body">
           <div class="milestone-title">${escapeHtml(m.title)}</div>
@@ -1243,18 +1457,73 @@ function renderEnhancedFeedback(record) {
   // 显示反思交互区
   setTimeout(() => {
     document.getElementById('reflectionArea').classList.add('visible');
-    document.getElementById('reflectionInput').value = '';
-    document.getElementById('reflectionInput').placeholder = `比如：${currentDrawingSubject}的形状这次画准了`;
-    document.getElementById('reflectionResponse').classList.remove('visible');
+    resetReflectionUI();
+    const input = document.getElementById('reflectionInput');
+    if (input) input.placeholder = `比如：${currentDrawingSubject}的形状这次画准了`;
+  }, 1000);
+}
+
+// ─── 精简模式反馈 ───
+function renderConciseFeedback(record) {
+  const container = document.getElementById('feedback');
+  const content = document.getElementById('feedbackContent');
+  const badge = document.getElementById('elapsedBadge');
+  const legacyMilestone = document.getElementById('milestoneSlotLegacy');
+
+  // 使用普通 feedback 文本（后端已生成）
+  let text = record.feedback || '';
+
+  // 如果没有普通文本，从 layers 合成简化版（只取 identify + observe + encourage）
+  if (!text && record.feedback_json && record.feedback_json.layers) {
+    const layers = record.feedback_json.layers;
+    const keyLayers = layers.filter(l => ['identify', 'observe', 'encourage'].includes(l.type));
+    text = keyLayers.map(l => l.content).filter(Boolean).join('\n\n');
+  }
+
+  content.innerHTML = enrichText(text).replace(/\n/g, '<br>');
+  badge.textContent = record.elapsed ? `⏱ ${record.elapsed}` : '';
+  container.classList.add('visible');
+
+  // 里程碑（精简模式也显示）
+  const total = (record.total_drawings !== undefined) ? record.total_drawings : (records.length);
+  const m = getMilestone(total);
+  if (m && legacyMilestone) {
+    legacyMilestone.style.display = 'block';
+    legacyMilestone.innerHTML = `
+      <div class="milestone-card ${m.key}">
+        <div class="ms-icon">${m.icon}</div>
+        <div class="ms-text">
+          <div class="ms-title">${m.title}</div>
+          <div class="ms-desc">${m.desc}</div>
+        </div>
+      </div>`;
+    showAchievementPopup(m);
+  }
+
+  // 滚动到反馈区
+  setTimeout(() => {
+    const rect = container.getBoundingClientRect();
+    window.scrollTo({ top: window.pageYOffset + rect.top - 12, behavior: 'smooth' });
+  }, 200);
+
+  startActionButtonsDelay(record);
+
+  setTimeout(() => {
+    document.getElementById('reflectionArea').classList.add('visible');
+    resetReflectionUI();
+    const input = document.getElementById('reflectionInput');
+    if (input) input.placeholder = `比如：${currentDrawingSubject}的形状这次画准了`;
   }, 1000);
 }
 
 // ─── 操作按钮 ───
-function renderActionButtons() {
+function renderActionButtons(record) {
   const container = document.getElementById('actionBtnsContainer');
+  const rid = (record && record.id) || currentRecordId || '';
   const btns = [
     {icon: '📸', cls: 'i-primary', title: '再画一张', desc: '有了新想法，再来一张', action: 'openCamera()'},
     {icon: '📖', cls: 'i-green', title: '查看记录', desc: '回顾一下绘画旅程', action: "switchTab('timeline')"},
+    {icon: '🌍', cls: 'i-orange', title: '分享到社区', desc: '让大家看到你的画', action: `shareToCommunity('${rid}')`},
   ];
   container.innerHTML = btns.map(b =>
     `<button class="action-btn" onclick="${b.action}">
@@ -1267,20 +1536,53 @@ function renderActionButtons() {
   ).join('');
 }
 
-function startActionButtonsDelay() {
+function startActionButtonsDelay(record) {
   const actions = document.getElementById('fbActions');
   actions.classList.remove('visible');
-  renderActionButtons();
+  renderActionButtons(record);
   setTimeout(() => { actions.classList.add('visible'); }, 2000);
 }
 
 // ─── 反思交互 ───
-function sendReflection() {
+function selectQuickReflection(btn, text) {
+  // 标记选中状态
+  document.querySelectorAll('.r-quick-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  // 直接发送反思
+  sendReflection(text);
+}
+
+function showCustomReflection() {
+  const row = document.getElementById('reflectionCustomRow');
+  if (row) {
+    row.style.display = 'flex';
+    const input = document.getElementById('reflectionInput');
+    if (input) setTimeout(() => input.focus(), 100);
+  }
+}
+
+// 重置反思区 UI（每次新反馈前调用）
+function resetReflectionUI() {
   const input = document.getElementById('reflectionInput');
-  const text = input.value.trim();
+  if (input) {
+    input.value = '';
+    input.style.borderColor = '';
+  }
+  const customRow = document.getElementById('reflectionCustomRow');
+  if (customRow) customRow.style.display = 'none';
+  document.querySelectorAll('.r-quick-btn').forEach(b => b.classList.remove('selected'));
+  const responseEl = document.getElementById('reflectionResponse');
+  if (responseEl) responseEl.classList.remove('visible');
+}
+
+function sendReflection(presetText) {
+  const input = document.getElementById('reflectionInput');
+  const text = (presetText || input.value || '').trim();
   if (!text) {
-    input.placeholder = '随便说说也行～';
-    input.style.borderColor = 'var(--color-primary-light)';
+    if (input) {
+      input.placeholder = '随便说说也行～';
+      input.style.borderColor = 'var(--color-primary-light)';
+    }
     return;
   }
 
@@ -1305,8 +1607,10 @@ function sendReflection() {
   const reply = replies[Math.floor(Math.random() * replies.length)];
 
   document.getElementById('reflectionReply').innerHTML = `
-    <div class="reflection-user-text">✍️ ${escapeHtml(text)}</div>
-    <div class="reflection-ai-reply">${enrichText(reply)}</div>
+    <div class="chat-meta user">你</div>
+    <div class="chat-bubble chat-user">${escapeHtml(text)}</div>
+    <div class="chat-meta ai">小绘</div>
+    <div class="chat-bubble chat-ai">${enrichText(reply)}</div>
   `;
   const responseEl = document.getElementById('reflectionResponse');
   responseEl.classList.add('visible');
@@ -1316,9 +1620,13 @@ function sendReflection() {
     responseEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 100);
 
-  input.value = '';
-  input.placeholder = `比如：${currentDrawingSubject}的形状这次画准了`;
-  input.style.borderColor = '';
+  // 重置输入区（但保留回应）
+  if (input) {
+    input.value = '';
+    input.style.borderColor = '';
+  }
+  const customRow = document.getElementById('reflectionCustomRow');
+  if (customRow) customRow.style.display = 'none';
 }
 
 // ─── 读取反思文字（用于弹窗展示） ───
@@ -1349,6 +1657,7 @@ function getTimeAgo(timestamp) {
 // ─── 记录感受（简易版） ───
 function recordFeeling() {
   const input = document.getElementById('reflectionInput');
+  if (!input) return;
   const text = input.value.trim();
   if (!text) {
     input.focus();
@@ -1391,6 +1700,275 @@ function updateHomepage() {
   }
 }
 
+// ─── 社区 ──────────────────────────────────────────
+
+async function renderCommunityFeed() {
+  const feed = document.getElementById('communityFeed');
+  feed.innerHTML = `
+    <div class="community-loading">
+      <div class="simple-waiting-dots"><span></span><span></span><span></span></div>
+      <div style="font-size:13px;color:var(--color-text-tertiary);margin-top:8px;">加载中…</div>
+    </div>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/community`);
+    const data = await res.json();
+    const posts = data.posts || [];
+
+    if (posts.length === 0) {
+      feed.innerHTML = `
+        <div class="community-empty">
+          <div class="community-empty-icon">🌍</div>
+          <div class="community-empty-title">社区还没有画作</div>
+          <div class="community-empty-desc">画完一张后，在反馈页点击「分享到社区」<br>让大家看到你的作品</div>
+        </div>`;
+      return;
+    }
+
+    // Instagram 风格 3 列网格
+    feed.innerHTML = posts.map(post => `
+      <div class="community-item" onclick="openCommunityPost('${post.id}')">
+        <img src="${API_BASE}/data/${post.image}" alt="${escapeHtml(post.author || '')}的画" loading="lazy"
+             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Crect fill=%22%23f0e6e0%22 width=%22120%22 height=%22120%22/%3E%3Ctext x=%2260%22 y=%2265%22 text-anchor=%22middle%22 fill=%22%23C97D5B%22 font-size=%2228%22%3E🎨%3C/text%3E%3C/svg%3E'">
+        ${post.likes > 0 ? `<div class="community-likes">❤️ ${post.likes}</div>` : ''}
+      </div>
+    `).join('');
+  } catch (e) {
+    feed.innerHTML = `
+      <div class="community-empty">
+        <div class="community-empty-icon">📡</div>
+        <div class="community-empty-title">无法加载社区</div>
+        <div class="community-empty-desc">请检查网络连接</div>
+      </div>`;
+  }
+}
+
+function closeCommunityModal() {
+  const modal = document.getElementById('communityModal');
+  if (!modal) return;
+  // 移除滚动监听
+  if (modal._scrollHandler && modal._scrollTarget) {
+    modal._scrollTarget.removeEventListener('scroll', modal._scrollHandler);
+    modal._scrollHandler = null;
+    modal._scrollTarget = null;
+  }
+  // 重置图片收缩状态
+  const modalInner = modal.querySelector('.modal');
+  if (modalInner) modalInner.classList.remove('img-collapsed');
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function openCommunityPost(postId) {
+  // 简单放大查看
+  const feed = document.getElementById('communityFeed');
+  const item = feed.querySelector(`[onclick*="${postId}"]`);
+  if (!item) return;
+  const img = item.querySelector('img');
+  if (!img) return;
+
+  let modal = document.getElementById('communityModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'communityModal';
+    modal.className = 'modal-overlay';
+    modal.onclick = function(e) { if (e.target === modal) closeCommunityModal(); };
+    document.body.appendChild(modal);
+  }
+  // 关闭旧监听（如果有）
+  if (modal._scrollHandler && modal._scrollTarget) {
+    modal._scrollTarget.removeEventListener('scroll', modal._scrollHandler);
+  }
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  modal.innerHTML = `
+    <div class="modal community-modal" onclick="event.stopPropagation()">
+      <button class="btn-close" onclick="closeCommunityModal()">✕</button>
+      <img src="${img.src}" alt="画作">
+      <div class="modal-info" style="padding:16px;">
+        <div id="communityModalInfo">加载中…</div>
+      </div>
+    </div>`;
+
+  // 社区弹窗：图片固定高度，仅 info 区域滚动，不使用动态收缩（避免滚动反馈循环）
+  const modalInfo = modal.querySelector('.modal-info');
+  if (modalInfo) {
+    modalInfo.scrollTop = 0;
+  }
+
+  // 加载详细信息
+  fetch(`${API_BASE}/api/community`)
+    .then(r => r.json())
+    .then(data => {
+      const post = (data.posts || []).find(p => p.id === postId);
+      if (post) {
+        const comments = post.comments || [];
+        const isLiked = (post.liked_by || []).includes(userName);
+        const likeBtnClass = isLiked ? 'btn-secondary' : 'btn-primary';
+        const likeText = isLiked ? '已赞' : '赞';
+        const likeIcon = isLiked ? '❤️' : '🤍';
+        // 去除 markdown 加粗标记
+        const cleanSummary = (post.feedback_summary || '').replace(/\*\*(.+?)\*\*/g, '$1');
+
+        document.getElementById('communityModalInfo').innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span class="avatar" style="font-size:20px;">🎨</span>
+            <div>
+              <div style="font-weight:600;font-size:15px;">${escapeHtml(post.author || '小伙伴')}</div>
+              <div style="font-size:12px;color:var(--color-text-tertiary);">${formatDate(post.timestamp)}</div>
+            </div>
+          </div>
+          ${post.theme ? `<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px;">主题：${escapeHtml(post.theme)}</div>` : ''}
+          ${cleanSummary ? `<div style="font-size:13px;color:var(--color-text-secondary);line-height:1.6;background:var(--color-bg-card);padding:10px 12px;border-radius:8px;border-left:3px solid var(--color-primary);margin-bottom:12px;">💬 ${escapeHtml(cleanSummary)}</div>` : ''}
+
+          <!-- 点赞按钮 -->
+          <button class="btn ${likeBtnClass} btn-sm" id="communityLikeBtn_${post.id}" style="width:100%;margin-bottom:12px;" onclick="likeCommunityPost('${post.id}', this)" ${isLiked ? 'disabled' : ''}>
+            ${likeIcon} ${post.likes || 0} ${likeText}
+          </button>
+
+          <!-- 评论区 -->
+          <div class="community-comments-section">
+            <div class="community-comments-header">
+              <span>💬 评论 (${comments.length})</span>
+            </div>
+            <div class="community-comments-list" id="communityComments_${post.id}">
+              ${comments.length > 0 ? comments.map(c => `
+                <div class="community-comment-item">
+                  <div class="community-comment-author">${escapeHtml(c.author || '小伙伴')}</div>
+                  <div class="community-comment-content">${escapeHtml(c.content)}</div>
+                  <div class="community-comment-time">${formatDate(c.timestamp)}</div>
+                </div>
+              `).join('') : '<div class="community-comment-empty">还没有评论，来说两句吧~</div>'}
+            </div>
+            <div class="community-comment-input-row">
+              <input type="text" class="community-comment-input" id="communityCommentInput_${post.id}" placeholder="写下你的评论..." maxlength="200">
+              <button class="community-comment-send" onclick="addCommunityComment('${post.id}')">发送</button>
+            </div>
+          </div>`;
+      }
+    });
+}
+
+function likeCommunityPost(postId, btn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  fetch(`${API_BASE}/api/community/like/${postId}`, { method: 'POST' })
+    .then(r => {
+      if (r.status === 409) {
+        return r.json().then(data => ({ alreadyLiked: true, ...data }));
+      }
+      return r.json();
+    })
+    .then(data => {
+      if (data.ok) {
+        btn.innerHTML = `❤️ ${data.likes} 已赞`;
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-secondary');
+        btn.disabled = true;
+        showToast('点赞成功！', 'success');
+      } else if (data.already_liked) {
+        btn.innerHTML = `❤️ ${data.likes} 已赞`;
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-secondary');
+        btn.disabled = true;
+        showToast('你已经点过赞了', 'info');
+      } else {
+        btn.disabled = false;
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+    });
+}
+
+async function addCommunityComment(postId) {
+  const input = document.getElementById(`communityCommentInput_${postId}`);
+  const content = input.value.trim();
+  if (!content) {
+    showToast('评论内容不能为空', 'error');
+    return;
+  }
+
+  const sendBtn = input.nextElementSibling;
+  sendBtn.disabled = true;
+  sendBtn.textContent = '发送中...';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/community/comment/${postId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      input.value = '';
+      showToast('评论已发布', 'success');
+      // 刷新评论区
+      const commentsList = document.getElementById(`communityComments_${postId}`);
+      const emptyMsg = commentsList.querySelector('.community-comment-empty');
+      if (emptyMsg) emptyMsg.remove();
+
+      const commentDiv = document.createElement('div');
+      commentDiv.className = 'community-comment-item';
+      commentDiv.innerHTML = `
+        <div class="community-comment-author">${escapeHtml(data.comment.author || '小伙伴')}</div>
+        <div class="community-comment-content">${escapeHtml(data.comment.content)}</div>
+        <div class="community-comment-time">刚刚</div>
+      `;
+      commentsList.appendChild(commentDiv);
+      commentsList.scrollTop = commentsList.scrollHeight;
+
+      // 更新评论数
+      const header = commentsList.previousElementSibling;
+      if (header) {
+        header.innerHTML = `<span>💬 评论 (${data.total})</span>`;
+      }
+    } else {
+      showToast(data.error || '评论失败', 'error');
+    }
+  } catch (e) {
+    showToast('网络错误，请重试', 'error');
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = '发送';
+  }
+}
+
+function shareCurrentRecord() {
+  if (!currentRecordId) return;
+  shareToCommunity(currentRecordId);
+}
+
+async function shareToCommunity(recordId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/community/share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ record_id: recordId }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('✅ 已分享到社区', 'success');
+    } else {
+      showToast(data.error || '分享失败', 'error');
+    }
+  } catch (e) {
+    showToast('网络错误，请重试', 'error');
+  }
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
+  if (diff < 604800) return Math.floor(diff / 86400) + ' 天前';
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
 // ─── 记录页增强：搜索 + 视图切换 ───
 let timelineSearchQuery = '';
 let timelineGroupMode = 'grid'; // 'grid' | 'list'
@@ -1418,7 +1996,7 @@ function renderTimeline() {
         oninput="onTimelineSearch(this.value)">
       <div class="tl-group-toggle">
         <button class="tl-group-btn ${timelineGroupMode === 'grid' ? 'active' : ''}" onclick="setTimelineGroup('grid')">平铺</button>
-        <button class="tl-group-btn ${timelineGroupMode === 'list' ? 'active' : ''}" onclick="setTimelineGroup('list')">展开</button>
+        <button class="tl-group-btn ${timelineGroupMode === 'list' ? 'active' : ''}" onclick="setTimelineGroup('list')">时间线</button>
       </div>
     </div>`;
 
@@ -1440,13 +2018,20 @@ function renderTimeline() {
   }
 
   if (timelineGroupMode === 'list') {
-    // 展开模式 — 一行一个，带文字信息
-    list.innerHTML = toolbarHtml + filtered.map(r => {
-      const recordIndex = records.indexOf(r);
-      return renderTimelineListItem(r, recordIndex);
-    }).join('');
+    // 时间线模式 — 按日期分组，56×56 缩略图 + 反馈摘要
+    const grouped = groupRecordsByDate(filtered);
+    let html = toolbarHtml;
+    for (const [dateLabel, items] of Object.entries(grouped)) {
+      html += `<div class="tl-date-group"><div class="tl-date-header">${dateLabel}</div>`;
+      html += items.map(r => {
+        const recordIndex = records.indexOf(r);
+        return renderTimelineListItem(r, recordIndex);
+      }).join('');
+      html += '</div>';
+    }
+    list.innerHTML = html;
   } else {
-    // 平铺模式 — 5 列图片网格
+    // 平铺模式 — 3 列图片网格
     list.innerHTML = toolbarHtml + '<div class="tl-grid">' + filtered.map(r => {
       const recordIndex = records.indexOf(r);
       return renderTimelineItem(r, recordIndex);
@@ -1454,12 +2039,41 @@ function renderTimeline() {
   }
 }
 
+// 按日期分组记录
+function groupRecordsByDate(filteredRecords) {
+  const groups = {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  for (const r of filteredRecords) {
+    let label;
+    try {
+      const d = new Date(r.timestamp);
+      const dDate = new Date(d);
+      dDate.setHours(0, 0, 0, 0);
+      if (dDate.getTime() === today.getTime()) {
+        label = '今天';
+      } else if (dDate.getTime() === yesterday.getTime()) {
+        label = '昨天';
+      } else {
+        label = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+      }
+    } catch(e) {
+      label = '未知日期';
+    }
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(r);
+  }
+  return groups;
+}
+
 function renderTimelineItem(r, recordIndex) {
   const safeIdx = recordIndex >= 0 ? recordIndex : 0;
   return `
     <div class="tl-grid-item" onclick="openModal(records[${safeIdx}])">
-      <img src="${API_BASE}/data/${r.image}" alt="第${safeIdx+1}张" loading="lazy">
-      <span class="tl-grid-num">${safeIdx + 1}</span>
+      <img src="${API_BASE}/data/${r.image}" alt="画作" loading="lazy">
     </div>`;
 }
 
@@ -1662,7 +2276,7 @@ function escapeRegex(s) {
 }
 
 function enrichText(text) {
-  let result = text;
+  let result = escapeHtml(text);
 
   // Step 1: Handle markdown bold **text** (从 LLM 输出的 **重点** 转为 strong 标签)
   result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -1818,6 +2432,7 @@ function showCalDay(key) {
 function openModal(record) {
   const modal = document.getElementById('modal');
   document.getElementById('modalImg').src = `${API_BASE}/data/${record.image}`;
+  currentRecordId = record.id;  // 保存当前记录 ID，用于删除
 
   // 查找记录索引（用于显示"第 N 张"）
   const recordIndex = records.findIndex(r => r.id === record.id);
@@ -1837,37 +2452,33 @@ function openModal(record) {
   // 构建反馈内容 — 优先使用 5 层结构，否则按段落格式化
   const feedbackEl = document.getElementById('modalFeedback');
   if (record.feedback_json && record.feedback_json.layers && record.feedback_json.layers.length >= 4) {
-    // 增强版：渲染 5 层结构
-    const LAYER_LABELS = {identify: '🎯 认出', observe: '🔍 观察', progress: '📈 进步', suggestion: '💡 建议', encourage: '✨ 期待'};
-    const LAYER_TAGS   = {identify: 'l-identify', observe: 'l-observe', progress: 'l-progress', suggestion: 'l-suggest', encourage: 'l-encourage'};
-    let html = '';
+    // 时空穿梭风格：精致分层标签
+    const LAYER_LABELS = {identify: '认出', observe: '观察', progress: '进步', suggestion: '建议', encourage: '期待'};
+    const LAYER_COLORS = {identify: 'rec', observe: 'obs', progress: 'prog', suggestion: 'sugg', encourage: 'enc'};
+    let html = '<div class="tt-ai-section">';
+    html += '<div class="tt-ai-header"><span class="tt-ai-avatar">🤖</span><span class="tt-ai-name">小绘 · 当时的反馈</span></div>';
     for (const layer of record.feedback_json.layers) {
       const type = layer.type;
-      const tagClass = LAYER_TAGS[type] || '';
+      const color = LAYER_COLORS[type] || '';
       const label = LAYER_LABELS[type] || type;
-      if (type === 'progress') {
-        html += `<div class="fb-progress-box" style="margin:8px 0;">
-          <span class="p-icon">📈</span>
-          <span class="p-text">${enrichText(layer.content)}</span>
-        </div>`;
-      } else {
-        html += `<p><span class="layer-tag ${tagClass}">${label}</span></p>`;
-        html += `<p>${enrichText(layer.content)}</p>`;
-        if (type === 'suggestion' && layer.tip && layer.tip.trim()) {
-          html += `<div class="fb-tip-box"><strong>💡 小技巧</strong>：${enrichText(layer.tip)}</div>`;
-        }
+      html += `<div class="tt-ai-layer"><span class="tt-ai-tag ${color}">${label}</span>${enrichText(layer.content)}</div>`;
+      if (type === 'suggestion' && layer.tip && layer.tip.trim()) {
+        html += `<div class="tt-ai-tip">💡 ${enrichText(layer.tip)}</div>`;
       }
     }
+    html += '</div>';
     feedbackEl.innerHTML = html;
   } else {
     // 普通版：按段落格式化
     const lines = (record.feedback || '').split('\n').filter(l => l.trim());
-    let html = '';
+    let html = '<div class="tt-ai-section">';
+    html += '<div class="tt-ai-header"><span class="tt-ai-avatar">🤖</span><span class="tt-ai-name">小绘 · 当时的反馈</span></div>';
     lines.forEach(line => {
       const cleanLine = line.trim().replace(/^[\d]+[)）.、:：]?\s*/, '');
       if (!cleanLine) return;
-      html += `<p>${enrichText(cleanLine)}</p>`;
+      html += `<div class="tt-ai-layer">${enrichText(cleanLine)}</div>`;
     });
+    html += '</div>';
     feedbackEl.innerHTML = html || '<p style="color:var(--color-text-tertiary);">暂无反馈</p>';
   }
 
@@ -1877,8 +2488,9 @@ function openModal(record) {
     if (record.milestone) {
       const m = record.milestone;
       const mClass = `milestone-icon ${m.number <= 50 ? 'm' + m.number : 'm50'}`;
+      const cardClass = `milestone-card ${m.number <= 50 ? 'm' + m.number : 'm50'}`;
       milestoneEl.innerHTML = `
-        <div class="milestone-card">
+        <div class="${cardClass}">
           <div class="${mClass}">${m.icon}</div>
           <div class="milestone-body">
             <div class="milestone-title">${escapeHtml(m.title)}</div>
@@ -1948,11 +2560,14 @@ function openModal(record) {
   }
 
   modal.classList.add('visible');
+  // 禁止底层页面滚动，防止穿透
+  document.body.style.overflow = 'hidden';
 
   // 记录详情滚动收缩：用户向下滑动文字区时，图片缩小到 3:7 比例
   const modalInfo = modal.querySelector('.modal-info');
   if (modalInfo) {
     modalInfo.scrollTop = 0;
+    modalInfo.style.overscrollBehavior = 'contain';
     const handleModalScroll = () => {
       if (modalInfo.scrollTop > 30) {
         modal.querySelector('.modal').classList.add('img-collapsed');
@@ -1979,6 +2594,35 @@ function closeModal() {
   const modalInner = modal.querySelector('.modal');
   if (modalInner) modalInner.classList.remove('img-collapsed');
   modal.classList.remove('visible');
+  // 恢复底层页面滚动
+  document.body.style.overflow = '';
+}
+
+function confirmDeleteRecord() {
+  if (!currentRecordId) return;
+  showConfirm({
+    icon: '🗑️',
+    title: '删除画作',
+    desc: '删除后无法恢复，确定要删除这张画吗？',
+    okText: '删除',
+    okClass: 'btn-danger',
+    onOk: async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/record/${currentRecordId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.ok) {
+          showToast('已删除', 'success');
+          closeModal();
+          await loadTimeline();
+          await loadStats(false);
+        } else {
+          showToast(data.error || '删除失败', 'error');
+        }
+      } catch (e) {
+        showToast('网络错误', 'error');
+      }
+    }
+  });
 }
 
 // ── 点击遮罩关闭弹窗（事件委托，避免 inline onclick 在移动端失效）──
