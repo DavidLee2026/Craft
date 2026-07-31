@@ -385,12 +385,15 @@ function showGlossaryTip(event, term) {
   tip.style.top = top + 'px';
 }
 
+// capture 阶段监听：详情页/弹窗的 .modal 容器有 onclick="event.stopPropagation()"，
+// 冒泡阶段会被拦断到不了 document → 点击别处永远关不掉术语提示。
+// capture 阶段最先执行、先于 stopPropagation，任意位置点击都能正确关闭。
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.glossary-term')) {
     const tip = document.getElementById('glossaryTip');
     if (tip) tip.classList.remove('visible');
   }
-});
+}, true);
 
 // ─── Calendar ───
 let calYear, calMonth;

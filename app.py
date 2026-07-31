@@ -48,7 +48,7 @@ from data_store import (
     THEME_LIBRARY,
     DIFFICULTY_LABELS,
 )
-from ai_service import analyze_drawing, _compress_image_b64, _build_analyze_prompt, analyze_drawing_stream
+from ai_service import analyze_drawing, _compress_image_b64, _build_analyze_prompt, analyze_drawing_stream, _sse_event
 from community_api import community_bp
 
 app = Flask(__name__)

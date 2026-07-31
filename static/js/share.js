@@ -26,6 +26,9 @@ async function shareToCommunity(recordId) {
     });
     const data = await res.json();
     if (data.ok) {
+      // 成功后关闭分享预览弹窗，让用户看到成功反馈（否则 toast 被弹窗遮住看不到）
+      const overlay = document.getElementById('sharePreviewOverlay');
+      if (overlay && overlay.classList.contains('visible')) closeSharePreview();
       showToast('✅ 已分享到社区', 'success');
     } else {
       showToast(data.error || '分享失败', 'error');

@@ -1353,8 +1353,39 @@ body{
 }
 .rd-back:active { opacity: 0.6; }
 .rd-title { font-size: 16px; font-weight: 700; color: var(--color-text-primary); }
-/* 分享按钮移入顶部栏：去掉原弹窗的绝对定位 */
-.rd-topbar .btn-share { position: static; }
+/* 分享按钮移入顶部栏：覆盖成圆形图标按钮。
+   注意它不在 .modal 内部，命中的是基础 .btn-share（全宽大按钮），
+   必须显式覆盖成图标按钮规格，否则会在顶栏撑成巨大按钮 */
+.rd-topbar .btn-share {
+  position: static;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  max-width: 36px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-size: 0;
+  line-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: background .2s, transform .1s;
+}
+.rd-topbar .btn-share:active {
+  transform: scale(.90);
+  background: var(--btn-primary-bg-active);
+}
+.rd-topbar .btn-share .share-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  flex-shrink: 0;
+}
 /* 内容容器全屏铺开（覆盖原弹窗的居中/限宽/溢出隐藏/入场动画） */
 .record-detail-page .modal {
   max-width: none;
@@ -3084,7 +3115,7 @@ body.booting::after {
   border-radius: 24px;
   font-size: 13px;
   font-weight: 500;
-  z-index: 300;
+  z-index: 400;
   opacity: 0;
   pointer-events: none;
   transition: opacity .3s var(--ease-out), transform .3s var(--ease-out);
@@ -4083,25 +4114,33 @@ body.booting::after {
   z-index: 10;
 }
 .share-preview-title {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 20px 20px 12px;
   font-size: 18px;
   font-weight: 600;
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-border-light);
 }
-.share-preview-img-wrap {
-  padding: 16px 20px;
-  max-height: 55vh;
-  overflow-y: auto;
-  display: flex;
-  justify-content: center;
+.share-preview-title .title-emoji {
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
   align-items: center;
-  background: var(--color-bg-subtle);
+}
+.share-preview-img-wrap {
+  padding: 16px;
+  max-height: 56vh;
+  overflow-y: auto;
+  display: block;
+  background: var(--raw-white);
 }
 .share-preview-img-wrap img {
-  max-width: 100%;
-  max-height: 52vh;
+  width: 100%;
+  height: auto;
+  max-height: none;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   display: block;

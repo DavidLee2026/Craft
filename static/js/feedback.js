@@ -118,17 +118,23 @@ async function uploadImage(file) {
 
     // 流结束 → 处理 complete 事件
     if (receivedLayers.length > 0) {
-      if (completeData) {
-        try {
+      try {
+        if (completeData) {
           finalizeStreamingFeedback(completeData, receivedLayers);
-        } catch (e) {
-          console.error('finalizeStreamingFeedback error:', e);
-          ensurePostFeedbackUI(completeData.record);
+        } else {
+          // 有反馈但没收到 complete（后端可能中途故障）——降级收尾，不卡死
+          console.warn('[SSE] 有 layers 但未收到 complete，降级收尾');
+          stopSimpleWaiting();
+          ensurePostFeedbackUI({id: 'fallback_' + Date.now()});
         }
-        try { await loadStats(false); } catch (e) {}   // 上传后静默刷新，不显示欢迎回来
-        try { await loadTimeline(); } catch (e) {}
-        try { await loadTodayTheme(); } catch (e) {}
+      } catch (e) {
+        console.error('finalizeStreamingFeedback error:', e);
+        ensurePostFeedbackUI(completeData && completeData.record);
       }
+      // 无论是否收到 complete，都刷新记录/统计/主题，让后端已保存的数据及时同步
+      try { await loadStats(false); } catch (e) {}   // 上传后静默刷新，不显示欢迎回来
+      try { await loadTimeline(); } catch (e) {}
+      try { await loadTodayTheme(); } catch (e) {}
     } else if (completeData) {
       // 没收到 layer 但收到了 complete — 用 record 数据渲染
       stopSimpleWaiting();

@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#C97D5B">
 <link rel="manifest" href="/manifest.json">
 <title>每日绘 Craft</title>
-<link rel="stylesheet" href="static/css/style.css?v=20260731v56">
+<link rel="stylesheet" href="static/css/style.css?v=20260731v59">
 </head>
 <body class="booting">
 
@@ -266,11 +266,11 @@
     <span class="rd-title">画作详情</span>
     <button class="btn-share rd-share" onclick="shareCurrentRecord()" title="生成分享图" aria-label="生成分享图">
       <svg class="share-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="18" cy="5" r="3" fill="none" stroke="#fff" stroke-width="2"/>
-        <circle cx="6" cy="12" r="3" fill="none" stroke="#fff" stroke-width="2"/>
-        <circle cx="18" cy="19" r="3" fill="none" stroke="#fff" stroke-width="2"/>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="18" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="6" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="18" cy="19" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
   </div>
@@ -376,16 +376,18 @@
 <div id="sharePreviewOverlay" class="share-preview-overlay" onclick="if(event.target===this)closeSharePreview()">
   <div class="share-preview-dialog">
     <button class="share-preview-close" onclick="closeSharePreview()">✕</button>
-    <div class="share-preview-title">🎨 分享我的画</div>
+    <div class="share-preview-title"><span class="title-emoji">🎨</span> 分享我的画</div>
     <div class="share-preview-img-wrap">
       <img id="sharePreviewImg" src="" alt="分享预览">
     </div>
     <div class="share-preview-actions">
       <button class="btn btn-primary btn-lg" id="shareCommunityBtn" onclick="shareToCommunityFromPreview()">
-        <span>🌍</span> 分享到社区
+        <span>🌍</span>
+        <span>分享到社区</span>
       </button>
       <button class="btn btn-secondary btn-lg" id="shareSystemBtn" onclick="shareViaSystem()">
-        <span>📤</span> 分享到其他
+        <span>📤</span>
+        <span>分享到其他</span>
       </button>
     </div>
     <div class="share-preview-tip">支持分享到微信、朋友圈、小红书</div>
@@ -393,13 +395,13 @@
 </div>
 
 <!-- ─── 模块化加载（顺序：依赖基础 → 功能域） ─── -->
-<script src="static/js/state.js?v=20260731v56"></script>
-<script src="static/js/onboarding.js?v=20260731v56"></script>
-<script src="static/js/themes.js?v=20260731v56"></script>
-<script src="static/js/camera.js?v=20260731v56"></script>
-<script src="static/js/feedback.js?v=20260731v56"></script>
-<script src="static/js/timeline.js?v=20260731v56"></script>
-<script src="static/js/community.js?v=20260731v56"></script>
-<script src="static/js/share.js?v=20260731v56"></script>
+<script src="static/js/state.js?v=20260731v59"></script>
+<script src="static/js/onboarding.js?v=20260731v59"></script>
+<script src="static/js/themes.js?v=20260731v59"></script>
+<script src="static/js/camera.js?v=20260731v59"></script>
+<script src="static/js/feedback.js?v=20260731v59"></script>
+<script src="static/js/timeline.js?v=20260731v59"></script>
+<script src="static/js/community.js?v=20260731v59"></script>
+<script src="static/js/share.js?v=20260731v59"></script>
 </body>
 </html>

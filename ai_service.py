@@ -8,7 +8,7 @@ import base64
 from pathlib import Path
 
 from config import ARK_MODEL, client
-from data_store import get_drawing_stage, _layers_to_text
+from data_store import get_drawing_stage, _layers_to_text, get_milestone
 
 def analyze_drawing(
     image_path: Path,
@@ -47,7 +47,7 @@ def analyze_drawing(
                 ],
             }
         ],
-        max_tokens=800,
+        max_tokens=500,
         temperature=0.7,
         extra_body={"thinking": {"type": "disabled"}},
     )
@@ -182,11 +182,11 @@ def _build_analyze_prompt(
     layers_spec = (
         '    {\n'
         '      "type": "identify",\n'
-        f'      "content": "先认出画的是什么（物体/人物/场景），表现出你看懂了。然后真诚地夸一个具体的亮点（线条、构图、造型、用笔等，不要虚构\'观察\'）。可以补充你对这幅画的第一印象或感受。称呼用户为{user_name}。2-3句话，写得有细节有温度，不要干巴巴。必须用 **加粗** 强调关键技巧或优点，如 **排线**、**透视**、**间距控制得很好**。每层最多1处加粗。",\n'
+        f'      "content": "先认出画的是什么（物体/人物/场景），表现出你看懂了。然后真诚地夸一个具体的亮点（线条、构图、造型、用笔等，不要虚构\'观察\'）。可以补充你对这幅画的第一印象或感受。称呼用户为{user_name}。2句话内，精炼有温度。必须用 **加粗** 强调关键技巧或优点，如 **排线**、**透视**、**间距控制得很好**。每层最多1处加粗。",\n'
         '    },\n'
         '    {\n'
         '      "type": "observe",\n'
-        "      \"content\": \"再指出你在画里注意到的具体细节（某个局部的处理方式、线条走向、比例关系、用笔特点等），让用户感觉到你真的很仔细看了。可以多指出1-2个具体细节，让用户感受到你真的仔细看了。2-3句话，具体不空洞。注意：不要说'你观察到了XX'——用户可能是凭记忆/想象画的，说'我注意到你的XX处理很特别'。\",\n"
+        "      \"content\": \"再指出你在画里注意到的具体细节（某个局部的处理方式、线条走向、比例关系、用笔特点等），让用户感觉到你真的很仔细看了。可以最多2句话，具体不空洞。注意：不要说'你观察到了XX'——用户可能是凭记忆/想象画的，说'我注意到你的XX处理很特别'。\",\n"
         '    },\n'
     )
     if has_progress:
@@ -207,7 +207,7 @@ def _build_analyze_prompt(
         '    },\n'
         '    {\n'
         '      "type": "encourage",\n'
-        '      "content": "以真诚的鼓励收尾，并自然地引出下次可以尝试的方向（如\'下次可以试试画XX，会有新的发现\'）。语气成熟自然，像朋友间的建议，不要用哄小孩的语气。可以结合用户这次画的内容，给出更有个性化的鼓励和期待。2-3句话。"\n'
+        '      "content": "以真诚的鼓励收尾，并自然地引出下次可以尝试的方向（如\'下次可以试试画XX，会有新的发现\'）。语气成熟自然，像朋友间的建议，不要用哄小孩的语气。可以结合用户这次画的内容，给出更有个性化的鼓励和期待。2句话内。"\n'
         '    }\n'
     )
 
@@ -229,7 +229,7 @@ def _build_analyze_prompt(
         "只填这幅画真正涉及到的术语（1-2个为佳）。如果没有术语，留空对象 {}。\n\n"
         "严格的规则：\n"
         f"- layers 必须有 {layer_count} 个，按顺序：{layer_order}\n"
-        "- 每层 content 2-3 句话，写得有细节有温度，不要太简短\n"
+        "- 每层 content 控制在 2 句话内，精炼有温度，避免冗长\n"
         f"- 称呼用户为{user_name}，让对话有亲密感\n"
         "- 评价画作内容本身，不说照片质量或光线\n"
         "- 识别内容时严谨第一：宁可说得模糊（'看起来像一个人形/一个圆形物体'），也绝不说错\n"
@@ -364,7 +364,7 @@ def analyze_drawing_stream(
                     ],
                 }
             ],
-            max_tokens=800,
+            max_tokens=500,
             temperature=0.7,
             stream=True,
             extra_body={"thinking": {"type": "disabled"}},
@@ -462,7 +462,12 @@ def analyze_drawing_stream(
 
     content = _layers_to_text(complete_layers, user_name) if complete_layers else raw
     elapsed_rounded = round(elapsed, 1)
-    milestone = get_milestone(total_drawings)
+    # milestone 计算容错：任何异常都不能中断记录保存与 complete 事件
+    try:
+        milestone = get_milestone(total_drawings)
+    except Exception as e:
+        print(f"[stream] ⚠️ milestone 计算失败（不影响保存）: {e}", flush=True)
+        milestone = None
 
     # 构建 complete 事件（如提供 record_context，则持久化并返回完整 record + 推荐）
     if record_context:
