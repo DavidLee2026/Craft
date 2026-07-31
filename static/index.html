@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#C97D5B">
 <link rel="manifest" href="/manifest.json">
 <title>每日绘 Craft</title>
-<link rel="stylesheet" href="static/css/style.css?v=20260731v38">
+<link rel="stylesheet" href="static/css/style.css?v=20260731v40">
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
 </head>
 <body class="booting">
@@ -132,6 +132,7 @@
     <div class="preview-confirm-photo">
       <img id="previewImg" src="" alt="我的画">
     </div>
+    <div class="preview-quality" id="previewQuality"></div>
     <div class="preview-confirm-hint">确认提交后，小绘会仔细看看这幅画</div>
     <div class="preview-confirm-actions">
       <button class="btn btn-secondary btn-md" onclick="cancelPreview()">重拍</button>
@@ -315,6 +316,7 @@
       <span class="camera-placeholder"></span>
     </div>
     <video id="cameraVideo" class="camera-video" autoplay playsinline></video>
+    <div class="camera-flash" id="cameraFlash"></div>
     <div class="camera-guide-frame"></div>
     <div class="camera-guide-hint">把画作对准虚线框<br>从正上方平行拍摄效果最好</div>
     <div class="camera-controls">
@@ -331,6 +333,7 @@
       <span class="camera-placeholder"></span>
     </div>
     <img id="cameraPreviewImg" class="camera-preview-img" src="" alt="预览">
+    <div class="camera-quality" id="cameraQuality"></div>
     <div class="camera-preview-actions">
       <button class="btn btn-md btn-secondary" onclick="retakePhoto()">🔄 重拍</button>
       <button class="btn btn-md btn-primary" onclick="confirmPhoto()">✅ 用这张</button>
@@ -393,13 +396,13 @@
 </div>
 
 <!-- ─── 模块化加载（顺序：依赖基础 → 功能域） ─── -->
-<script src="static/js/state.js?v=20260731v39"></script>
-<script src="static/js/onboarding.js?v=20260731v39"></script>
-<script src="static/js/themes.js?v=20260731v39"></script>
-<script src="static/js/camera.js?v=20260731v39"></script>
-<script src="static/js/feedback.js?v=20260731v39"></script>
-<script src="static/js/timeline.js?v=20260731v39"></script>
-<script src="static/js/community.js?v=20260731v39"></script>
-<script src="static/js/share.js?v=20260731v39"></script>
+<script src="static/js/state.js?v=20260731v40"></script>
+<script src="static/js/onboarding.js?v=20260731v40"></script>
+<script src="static/js/themes.js?v=20260731v40"></script>
+<script src="static/js/camera.js?v=20260731v40"></script>
+<script src="static/js/feedback.js?v=20260731v40"></script>
+<script src="static/js/timeline.js?v=20260731v40"></script>
+<script src="static/js/community.js?v=20260731v40"></script>
+<script src="static/js/share.js?v=20260731v40"></script>
 </body>
 </html>

@@ -56,6 +56,10 @@ function capturePhoto() {
   if (cameraBusy || !cameraStream) return;
   cameraBusy = true;
 
+  // 拍照反馈时序 · 快门瞬间：微震动 + 闪白过渡
+  if (navigator.vibrate) navigator.vibrate(30);
+  flashCameraShutter();
+
   const video = document.getElementById('cameraVideo');
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth;
@@ -75,8 +79,48 @@ function capturePhoto() {
     document.getElementById('cameraPreviewView').style.display = '';
     // 保存 blob 供确认使用
     pendingCameraBlob = blob;
+    // 拍照反馈时序 · 预览：轻提示 + 画质即时检测
+    showToast('拍到了！看看怎么样 📷');
+    detectImageQuality(url, document.getElementById('cameraQuality'));
     cameraBusy = false;
   }, 'image/jpeg', 0.92);
+}
+
+// 快门闪白过渡（150ms 白色闪过，模拟快门闭合）
+function flashCameraShutter() {
+  const flash = document.getElementById('cameraFlash');
+  if (!flash) return;
+  flash.classList.remove('active');
+  void flash.offsetWidth; // 强制重绘，确保动画重新触发
+  flash.classList.add('active');
+}
+
+// 画质即时检测：采样亮度，提示光线是否合适
+function detectImageQuality(url, el) {
+  if (!el) return;
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    const size = 32;
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, size, size);
+    const data = ctx.getImageData(0, 0, size, size).data;
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    }
+    const avg = sum / (size * size);
+    let text = '', cls = '';
+    if (avg < 60) { text = '🌙 有点暗，试试调亮？'; cls = 'warn'; }
+    else if (avg > 225) { text = '☀️ 光线偏强，避开直射试试'; cls = 'warn'; }
+    else { text = '✨ 光线不错，画得很清楚'; cls = 'good'; }
+    el.textContent = text;
+    el.className = 'camera-quality ' + cls;
+  };
+  img.onerror = () => { el.textContent = ''; };
+  img.src = url;
 }
 
 let pendingCameraBlob = null;
@@ -156,6 +200,8 @@ function resetPreviewUI() {
   if (tag) tag.textContent = '✓ 拍到了';
   const hint = document.querySelector('.preview-confirm-hint');
   if (hint) hint.textContent = '确认提交后，小绘会仔细看看这幅画';
+  const quality = document.getElementById('previewQuality');
+  if (quality) { quality.textContent = ''; quality.className = 'preview-quality'; }
 }
 
 function showPreview(file) {
@@ -166,6 +212,8 @@ function showPreview(file) {
     document.getElementById('previewImg').src = e.target.result;
     document.getElementById('previewSection').classList.remove('hidden');
     document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+    // 拍照反馈时序 · 预览展示：画质即时检测
+    detectImageQuality(e.target.result, document.getElementById('previewQuality'));
   };
   reader.readAsDataURL(file);
 }

@@ -7,10 +7,27 @@ const OB_STEPS = [
     title: '你好呀，我是小绘',
     sub: '你叫什么名字？这样我能用心称呼你',
     render: (d) => `
-      <h2 class="brand-name">你好呀，我是<span class="highlight">小绘</span> 🎨</h2>
-      <div class="sub warm">你叫什么名字？这样我能用心称呼你</div>
-      <input class="ob-input" id="obName" type="text" placeholder="输入你的名字" value="${d.name || ''}" maxlength="8" autofocus>
-      <div class="ob-greeting-preview" id="obPreview"></div>
+      <div class="ob-chat">
+        <div class="ob-msg ob-msg-ai">
+          <div class="ob-msg-avatar">✏️</div>
+          <div class="ob-msg-bubble">
+            <div class="ob-msg-name">小绘</div>
+            你好呀，我是你的 AI 画友 ✨
+          </div>
+        </div>
+        <div class="ob-msg ob-msg-ai">
+          <div class="ob-msg-avatar">✏️</div>
+          <div class="ob-msg-bubble">
+            你叫什么名字？这样我能用心称呼你
+          </div>
+        </div>
+        <div class="ob-msg ob-msg-me">
+          <div class="ob-msg-bubble ob-input-bubble">
+            <input class="ob-input" id="obName" type="text" placeholder="输入你的名字" value="${d.name || ''}" maxlength="8" autofocus>
+          </div>
+        </div>
+        <div class="ob-greeting-preview" id="obPreview"></div>
+      </div>
       <button class="ob-btn primary" id="obNext1" disabled onclick="obNext()">准备好了 →</button>
     `,
     validate: (d) => {

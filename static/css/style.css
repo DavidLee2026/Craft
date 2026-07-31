@@ -262,6 +262,103 @@ body{
 }
 .ob-greeting-preview:empty{min-height:0;margin-top:0;}
 
+/* ── Onboarding 对话式（微信风格气泡） ── */
+.ob-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.ob-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
+}
+.ob-msg-ai { justify-content: flex-start; }
+.ob-msg-me { justify-content: flex-end; }
+.ob-msg-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.ob-msg-bubble {
+  padding: 11px 15px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-paper);
+  position: relative;
+  max-width: 82%;
+  text-align: left;
+}
+.ob-msg-ai .ob-msg-bubble { border-bottom-left-radius: 4px; }
+.ob-msg-ai .ob-msg-bubble::before {
+  content: '';
+  position: absolute;
+  left: -6px; bottom: 9px;
+  border: 6px solid transparent;
+  border-right-color: var(--color-bg-card);
+}
+.ob-msg-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 3px;
+}
+.ob-msg-me .ob-msg-bubble {
+  background: linear-gradient(135deg, var(--raw-sage-300), var(--raw-sage-500));
+  color: #fff;
+  border: none;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 10px rgba(123,155,110,.30);
+}
+.ob-msg-me .ob-msg-bubble::before {
+  content: '';
+  position: absolute;
+  right: -6px; bottom: 9px;
+  border: 6px solid transparent;
+  border-left-color: var(--raw-sage-300);
+}
+.ob-msg-me .ob-msg-bubble .ob-input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  text-align: left;
+  padding: 2px 0;
+  font-size: 16px;
+  width: 200px;
+  min-height: 0;
+  caret-color: #fff;
+}
+.ob-msg-me .ob-msg-bubble .ob-input::placeholder { color: rgba(255,255,255,.75); }
+.ob-msg-me .ob-msg-bubble .ob-input:focus {
+  outline: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+.ob-msg-me .ob-msg-bubble .ob-input.shake {
+  border: 2px solid #E05A5A;
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  background: rgba(255,255,255,.15);
+}
+.ob-chat .ob-greeting-preview {
+  color: var(--color-success);
+  font-size: 16px;
+  margin-top: 4px;
+  text-align: center;
+}
+
 /* ── Greeting ── */
 .greeting{
   padding:14px 20px 8px;
@@ -584,6 +681,20 @@ body{
 @keyframes photoFloatUp {
   from { transform: translateY(12px) scale(.96); opacity: .4; }
   to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+.preview-quality {
+  font-size: 13px;
+  text-align: center;
+  padding: 8px 12px;
+  margin: 0 0 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  animation: qualityFadeIn .3s var(--ease-out);
+}
+.preview-quality.warn {
+  background: var(--raw-ochre-100);
+  color: var(--raw-ochre-700);
 }
 .preview-confirm-hint {
   font-size: 13px;
@@ -3125,6 +3236,21 @@ body.booting::after {
   max-height: 100%;
   object-fit: contain;
 }
+.camera-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+.camera-flash.active {
+  animation: cameraFlash .18s ease-out;
+}
+@keyframes cameraFlash {
+  0% { opacity: .9; }
+  100% { opacity: 0; }
+}
 .camera-guide-frame {
   position: absolute;
   top: 50%; left: 50%;
@@ -3209,6 +3335,29 @@ body.booting::after {
   max-height: 60vh;
   border-radius: var(--radius-md);
   box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  animation: previewPopIn .35s var(--ease-spring);
+}
+@keyframes previewPopIn {
+  0% { opacity: 0; transform: scale(.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.camera-quality {
+  font-size: 13px;
+  text-align: center;
+  padding: 8px 14px;
+  margin: 12px 16px 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  animation: qualityFadeIn .3s var(--ease-out);
+}
+.camera-quality.warn {
+  background: var(--raw-ochre-100);
+  color: var(--raw-ochre-700);
+}
+@keyframes qualityFadeIn {
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 .camera-preview-actions {
   display: flex;
@@ -3344,7 +3493,7 @@ body.booting::after {
 .composition-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(58,50,44,.5);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -3358,12 +3507,13 @@ body.booting::after {
   pointer-events: auto;
 }
 .comp-card {
-  background: var(--color-surface, #faf8f5);
-  border-radius: 16px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
   padding: 24px;
   max-width: 340px;
   width: 90%;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-lifted);
 }
 .comp-title {
   font-size: 18px;
@@ -3375,8 +3525,8 @@ body.booting::after {
 .comp-grid-demo {
   width: 100%;
   aspect-ratio: 4/3;
-  background: #f0ebe3;
-  border-radius: 8px;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-sm);
   position: relative;
   margin-bottom: 16px;
   overflow: hidden;
@@ -3387,7 +3537,7 @@ body.booting::after {
 }
 .comp-h-line, .comp-v-line {
   position: absolute;
-  background: rgba(201, 125, 91, 0.4);
+  background: var(--tag-primary-bg);
 }
 .comp-h-line {
   left: 0;
@@ -3404,7 +3554,7 @@ body.booting::after {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-primary, #C97D5B);
+  background: var(--color-primary);
   transform: translate(-50%, -50%);
 }
 .comp-tips {
