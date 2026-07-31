@@ -1874,10 +1874,7 @@ def api_reflection():
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "你是小绘，一个温和耐心的绘画陪伴者。用户刚画完画写了句反思，"
-                            "你用简短的一句话回应 ta——针对具体内容、语气自然、不加 emoji、不问问题。"
-                        ),
+                        "content": "你是小绘。用户画完画写了一句反思，你用一句话针对内容回应ta，语气自然，不加emoji。",
                     },
                     {
                         "role": "user",
@@ -1892,13 +1889,14 @@ def api_reflection():
                 token = chunk.choices[0].delta.content or ""
                 if token:
                     yield f"data: {json.dumps({'token': token})}\n\n"
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            yield _sse_event({'type': 'done'})
         except Exception as e:
-            yield f"data: {json.dumps({'type': 'fallback', 'text': '嗯，我听到了。每次进步都值得记下来 ☺️'})}\n\n"
+            yield _sse_event({'type': 'fallback', 'text': '嗯，我听到了。每次进步都值得记下来 ☺️'})
 
     resp = Response(generate(), mimetype="text/event-stream")
     resp.headers["Cache-Control"] = "no-cache"
     resp.headers["X-Accel-Buffering"] = "no"
+    resp.headers["Connection"] = "keep-alive"
     return resp
 
 
@@ -1929,6 +1927,19 @@ if __name__ == "__main__":
     else:
         print(f"✅ ARK API 已配置 · 模型: {ARK_MODEL}")
         print(f"   数据目录: {DATA_DIR}")
+
+    # 模型预热：发一个空请求让模型保持热状态，减少后续请求冷启动延迟
+    if ARK_API_KEY:
+        try:
+            client.chat.completions.create(
+                model=ARK_MODEL,
+                messages=[{"role": "user", "content": "你好"}],
+                max_tokens=1,
+                stream=False,
+            )
+            print("🌡️  模型已预热")
+        except Exception as e:
+            print(f"⚠️  模型预热失败（不影响运行）: {e}")
 
     # 检测是否有 Onboarding 数据
     profile = load_profile()
