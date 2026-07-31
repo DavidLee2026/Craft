@@ -1379,8 +1379,8 @@ def api_analyze_stream():
             yield sse
 
     # 4. 返回 SSE 响应
-    resp = Response(generate(), mimetype="text/event-stream")
-    resp.headers["Cache-Control"] = "no-cache"
+    resp = Response(generate(), mimetype="text/event-stream", direct_passthrough=True)
+    resp.headers["Cache-Control"] = "no-cache, no-transform"
     resp.headers["X-Accel-Buffering"] = "no"  # 禁用 Nginx 缓冲，确保实时推送
     resp.headers["Connection"] = "keep-alive"
     return resp
@@ -1888,13 +1888,13 @@ def api_reflection():
             for chunk in stream:
                 token = chunk.choices[0].delta.content or ""
                 if token:
-                    yield f"data: {json.dumps({'token': token})}\n\n"
+                    yield _sse_event({'token': token})
             yield _sse_event({'type': 'done'})
         except Exception as e:
             yield _sse_event({'type': 'fallback', 'text': '嗯，我听到了。每次进步都值得记下来 ☺️'})
 
-    resp = Response(generate(), mimetype="text/event-stream")
-    resp.headers["Cache-Control"] = "no-cache"
+    resp = Response(generate(), mimetype="text/event-stream", direct_passthrough=True)
+    resp.headers["Cache-Control"] = "no-cache, no-transform"
     resp.headers["X-Accel-Buffering"] = "no"
     resp.headers["Connection"] = "keep-alive"
     return resp
