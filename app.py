@@ -114,7 +114,7 @@ MASTER_DIR = KB_DIR / "大师"
 
 ARK_API_KEY = os.environ.get("ARK_API_KEY", "")
 ARK_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
-ARK_MODEL = "doubao-seed-2-1-turbo-260628"
+ARK_MODEL = "doubao-seed-2-0-mini-260428"  # 轻量快速视觉模型，分析反馈专用（之前: seed-2-1-turbo）
 
 # ── 练习参考图（TRAE-06 下载）────
 RECOMMENDATION_IMAGES = {}
