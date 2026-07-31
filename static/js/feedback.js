@@ -616,7 +616,7 @@ function renderActionButtons(record) {
   const container = document.getElementById('actionBtnsContainer');
   const rid = (record && record.id) || currentRecordId || '';
   const btns = [
-    {icon: '📸', cls: 'i-primary', title: '再画一张', desc: '有了新想法，再来一张', action: 'openCamera()'},
+    {icon: '📸', cls: 'i-primary', title: '拍一张', desc: '拿起画笔再画一张，拍下来', action: 'openCamera()'},
     {icon: '📖', cls: 'i-green', title: '查看记录', desc: '回顾一下绘画旅程', action: "switchTab('timeline')"},
     {icon: '🎨', cls: 'i-orange', title: '分享我的画', desc: '生成分享图，发朋友圈', action: `shareMyPainting('${rid}')`},
   ];

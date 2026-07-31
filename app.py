@@ -125,6 +125,30 @@ def api_analyze():
     return jsonify({"record": record, "next_recommendation": next_rec, "boss_result": None})
 
 
+@app.route("/api/share-image", methods=["POST"])
+def api_share_image():
+    """上传前端生成的分享图，返回 http 地址。
+
+    微信 WebView 里长按图片需要真实 URL 才能弹"发送给朋友/保存"菜单，
+    data URL 长按无效 → 前端生成分享图后 POST 到这里换取 http 地址。
+    """
+    payload = request.json or {}
+    data_url = payload.get("data_url", "")
+    if not data_url or not data_url.startswith("data:image/"):
+        return jsonify({"error": "invalid image data"}), 400
+    try:
+        mime, b64 = data_url.split(",", 1)
+        raw = base64.b64decode(b64)
+        ext = "png" if "png" in mime else "jpg"
+        share_dir = DATA_DIR / "share_images"
+        share_dir.mkdir(parents=True, exist_ok=True)
+        filename = f"share_{uuid.uuid4().hex[:8]}.{ext}"
+        (share_dir / filename).write_bytes(raw)
+        return jsonify({"url": f"/data/share_images/{filename}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/check-drawing", methods=["POST"])
 def api_check_drawing():
     """快速判断上传的图片是否为手绘画作。"""

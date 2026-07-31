@@ -8,7 +8,16 @@ import base64
 from pathlib import Path
 
 from config import ARK_MODEL, client
-from data_store import get_drawing_stage, _layers_to_text, get_milestone
+from data_store import (
+    get_drawing_stage,
+    _layers_to_text,
+    get_milestone,
+    load_records,
+    save_records,
+    log_event,
+    get_recommendation,
+    load_profile,
+)
 
 def analyze_drawing(
     image_path: Path,
@@ -493,6 +502,14 @@ def analyze_drawing_stream(
             })
             print(f"[stream] ✅ 记录已保存: id={record.get('id')}, total={len(records)}", flush=True)
         except Exception as e:
+            # 记录保存失败时把完整 traceback 写到文件，便于诊断（服务器 stdout 在用户终端里读不到）
+            try:
+                import traceback as _tb
+                with open("/tmp/craft_save_error.log", "a", encoding="utf-8") as _f:
+                    _f.write(f"=== {record.get('id','?')} @ {__import__('datetime').datetime.now()} ===\n")
+                    _f.write(_tb.format_exc() + "\n")
+            except Exception:
+                pass
             print(f"[stream] ❌ 记录保存失败: {e}", flush=True)
         # 画完后推荐下一幅
         profile = record_context.get("profile") or load_profile()

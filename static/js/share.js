@@ -26,9 +26,7 @@ async function shareToCommunity(recordId) {
     });
     const data = await res.json();
     if (data.ok) {
-      // 成功后关闭分享预览弹窗，让用户看到成功反馈（否则 toast 被弹窗遮住看不到）
-      const overlay = document.getElementById('sharePreviewOverlay');
-      if (overlay && overlay.classList.contains('visible')) closeSharePreview();
+      // 分享成功不关闭预览弹窗，仅弹 toast（toast z-index 400 高于弹窗，可见）
       showToast('✅ 已分享到社区', 'success');
     } else {
       showToast(data.error || '分享失败', 'error');
@@ -82,7 +80,22 @@ async function generateShareCard(record) {
 
     currentShareDataUrl = dataUrl;
 
-    document.getElementById('sharePreviewImg').src = dataUrl;
+    // 上传分享图换真实 http 地址：微信 WebView 长按图片需要真实 URL 才能弹
+    // "发送给朋友/保存"菜单，data URL 长按无效。上传失败则回退 data URL。
+    let displayUrl = dataUrl;
+    try {
+      const resp = await fetch(`${API_BASE}/api/share-image`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({data_url: dataUrl}),
+      });
+      const data = await resp.json();
+      if (data.url) displayUrl = data.url;
+    } catch (e) {
+      console.warn('分享图上传失败，回退 data URL:', e);
+    }
+
+    document.getElementById('sharePreviewImg').src = displayUrl;
 
     document.getElementById('sharePreviewOverlay').classList.add('visible');
     document.body.style.overflow = 'hidden';
@@ -113,7 +126,11 @@ function renderShareCardNative(paintingImg) {
       ready.then(() => {
         const W = 1080;
         const padTop = 60, padBottom = 50;
-        const imgSize = 960;                 // 图片区 .share-card-image-wrap
+        const imgW = 711;                    // 图片区宽度（画作按比例缩小约 30%，居中留白）
+        // 图片区高度按原图宽高比自适应 → 图片始终铺满图片区、无左右留白
+        const iw0 = paintingImg.naturalWidth || 960, ih0 = paintingImg.naturalHeight || 960;
+        let imgH = Math.round(imgW * ih0 / iw0);
+        imgH = Math.max(400, Math.min(1100, imgH));  // clamp 防极端比例（超宽/超高图）
         const serif = '"Noto Serif SC","Songti SC",serif';
         const sans = '-apple-system,"PingFang SC","Noto Sans SC",sans-serif';
 
@@ -145,7 +162,7 @@ function renderShareCardNative(paintingImg) {
         y += 36;                             // brand 区 margin-bottom
         let streakTop = null;
         if (showStreak) { streakTop = y; y += 100 + 28; }  // pill + margin-bottom 28
-        const imgTop = y; y += imgSize;      // 图片区 960
+        const imgTop = y; y += imgH;         // 图片区（高度自适应）
         const dividerTop = y + 36; y += 36 + 3 + 36;        // divider + 上下 margin
         const fbTop = y; y += fbLines.length * fbLineH;
         y += 36 + 26 + padBottom;            // footer + 底部
@@ -161,11 +178,18 @@ function renderShareCardNative(paintingImg) {
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, W, H);
 
-        // logo（居中）
+        // logo（手动居中：emoji 前缀与文字分开绘制，防 emoji 渲染度量偏差导致整体偏移）
         ctx.font = '700 42px ' + serif;
         ctx.fillStyle = logoColor;
-        ctx.textAlign = 'center';
-        ctx.fillText(logoText, W / 2, logoTop + 30);
+        const logoEmoji = (logoText.match(/^\S+/) || [''])[0];
+        const logoWords = logoText.slice(logoEmoji.length).trim();
+        const emojiW = ctx.measureText(logoEmoji).width;
+        const wordsW = ctx.measureText(logoWords).width;
+        const logoStartX = W / 2 - (emojiW + wordsW) / 2;
+        ctx.textAlign = 'left';
+        ctx.fillText(logoEmoji, logoStartX, logoTop + 30);
+        ctx.fillText(logoWords, logoStartX + emojiW, logoTop + 30);
+        ctx.textAlign = 'center';  // 重置对齐，避免污染后续绘制（日期等仍按中心对齐）
 
         // 日期
         ctx.font = '500 22px ' + sans;
@@ -207,23 +231,23 @@ function renderShareCardNative(paintingImg) {
           ctx.fillText('天', cx, pillCy);
         }
 
-        // 图片区（白底圆角 + 阴影 + 图片 contain）
-        const imgX = (W - imgSize) / 2;
+        // 图片区（白底圆角 + 阴影 + 图片按比例铺满）
+        const imgX = (W - imgW) / 2;
         ctx.save();
         ctx.shadowColor = 'rgba(154,87,56,0.10)';
         ctx.shadowBlur = 40;
         ctx.shadowOffsetY = 8;
-        roundRectPath(ctx, imgX, imgTop, imgSize, imgSize, 20);
+        roundRectPath(ctx, imgX, imgTop, imgW, imgH, 20);
         ctx.fillStyle = imgWrapBg;
         ctx.fill();
         ctx.restore();
         ctx.save();
-        roundRectPath(ctx, imgX, imgTop, imgSize, imgSize, 20);
+        roundRectPath(ctx, imgX, imgTop, imgW, imgH, 20);
         ctx.clip();
         const iw = paintingImg.naturalWidth, ih = paintingImg.naturalHeight;
-        const scale = Math.min(imgSize / iw, imgSize / ih);
+        const scale = Math.min(imgW / iw, imgH / ih);
         const dw = iw * scale, dh = ih * scale;
-        ctx.drawImage(paintingImg, imgX + (imgSize - dw) / 2, imgTop + (imgSize - dh) / 2, dw, dh);
+        ctx.drawImage(paintingImg, imgX + (imgW - dw) / 2, imgTop + (imgH - dh) / 2, dw, dh);
         ctx.restore();
 
         // 分割线
@@ -333,35 +357,4 @@ async function shareToCommunityFromPreview() {
   await shareToCommunity(currentShareRecordId);
 }
 
-async function shareViaSystem() {
-  if (!currentShareDataUrl) return;
-  const canShare = navigator.share && navigator.canShare && navigator.canShare({ files: [] });
-  if (canShare) {
-    // 系统分享面板：微信/朋友圈/小红书/其他 App
-    try {
-      const resp = await fetch(currentShareDataUrl);
-      const blob = await resp.blob();
-      const file = new File([blob], `每日绘-${new Date().toISOString().slice(0,10)}.png`, { type: 'image/png' });
-      await navigator.share({ files: [file], title: '我的每日绘分享', text: '来看看我画的画！' });
-    } catch (e) {
-      if (e.name !== 'AbortError') showToast('分享未完成', 'error');
-    }
-  } else {
-    // 环境不支持系统分享面板（部分 WebView）：降级为保存图片，用户自行分享
-    downloadShareImage();
-  }
-}
-
-function downloadShareImage() {
-  if (!currentShareDataUrl) return;
-  const link = document.createElement('a');
-  link.download = `每日绘-${new Date().toISOString().slice(0,10)}.png`;
-  link.href = currentShareDataUrl;
-  document.body.appendChild(link);
-  link.click();
-  setTimeout(() => {
-    document.body.removeChild(link);
-    showToast('已保存到相册', 'success');
-  }, 500);
-}
 
