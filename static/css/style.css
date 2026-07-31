@@ -1432,6 +1432,8 @@ body{
   color: var(--color-text-primary);
 }
 .onboarding .ob-input:focus{border-color: var(--color-primary);}
+.onboarding .ob-input.shake{animation:inputShake .5s ease;border-color:#E05A5A;box-shadow:0 0 0 3px rgba(224,90,90,.2);}
+@keyframes inputShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-6px)}30%{transform:translateX(6px)}45%{transform:translateX(-4px)}60%{transform:translateX(4px)}75%{transform:translateX(-2px)}90%{transform:translateX(2px)}}
 .onboarding .ob-options{display:flex;flex-direction:column;gap:10px;}
 .onboarding .ob-option{
   padding:16px;
@@ -2300,10 +2302,6 @@ body.growth-mode #growthModeContent { display: block; }
   0%, 60%, 100% { opacity: .25; transform: scale(.8); }
   30% { opacity: 1; transform: scale(1.1); }
 }
-.simple-waiting-text {
-  font-size: 14px; color: var(--color-text-secondary); line-height: 1.6;
-}
-
 /* ── 首层秒出：第一印象提示 ── */
 .first-impression {
   display: flex; flex-direction: column; align-items: center; gap: 10px;

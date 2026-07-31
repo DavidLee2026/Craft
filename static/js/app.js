@@ -144,6 +144,7 @@ const OB_STEPS = [
     `,
     validate: (d) => {
       const name = document.getElementById('obName').value.trim();
+      if (name.length > 8) return null;
       return name.length > 0 ? {name} : null;
     },
     onMount: () => {
@@ -158,7 +159,12 @@ const OB_STEPS = [
             preview.textContent = name ? `${name}，准备好开始了吗？ ✨` : '';
           }
           if (btn) {
-            btn.disabled = !name;
+            btn.disabled = !name || name.length > 8;
+          }
+          if (name.length > 8) {
+            inp.classList.add('shake');
+            showToast('姓名不能超过 8 个字 😅');
+            setTimeout(() => inp.classList.remove('shake'), 600);
           }
         };
         inp.addEventListener('input', updatePreview);
@@ -335,8 +341,22 @@ async function setName() {
   input.select();
 
   const okBtn = document.getElementById('setNameOkBtn');
+  // 输入时检测超长
+  input.addEventListener('input', () => {
+    if (input.value.trim().length > 8) {
+      input.classList.add('shake');
+      showToast('姓名不能超过 8 个字 😅');
+      setTimeout(() => input.classList.remove('shake'), 600);
+    }
+  });
   okBtn.onclick = async () => {
     const newName = input.value.trim();
+    if (newName.length > 8) {
+      input.classList.add('shake');
+      showToast('姓名不能超过 8 个字 😅');
+      setTimeout(() => input.classList.remove('shake'), 600);
+      return;
+    }
     if (!newName || newName === userName) {
       closeConfirm();
       // 恢复弹窗结构
