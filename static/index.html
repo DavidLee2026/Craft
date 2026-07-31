@@ -6,8 +6,7 @@
 <meta name="theme-color" content="#C97D5B">
 <link rel="manifest" href="/manifest.json">
 <title>每日绘 Craft</title>
-<link rel="stylesheet" href="static/css/style.css?v=20260731v49">
-<script src="static/js/vendor/html-to-image.min.js?v=20260731v49"></script>
+<link rel="stylesheet" href="static/css/style.css?v=20260731v56">
 </head>
 <body class="booting">
 
@@ -260,10 +259,12 @@
   <span class="reset-link" onclick="resetAllData()">重置</span>
 </div>
 
-<!-- ─── Detail Modal ─── -->
-<div id="modal" class="modal-overlay">
-  <div class="modal" onclick="event.stopPropagation()">
-    <button class="btn-share" onclick="shareCurrentRecord()" title="生成分享图" aria-label="生成分享图">
+<!-- ─── 记录详情页（独立页面，非弹窗——分享才是弹窗） ─── -->
+<div id="recordDetailPage" class="record-detail-page">
+  <div class="rd-topbar">
+    <button class="rd-back" onclick="closeModal()">‹ 返回</button>
+    <span class="rd-title">画作详情</span>
+    <button class="btn-share rd-share" onclick="shareCurrentRecord()" title="生成分享图" aria-label="生成分享图">
       <svg class="share-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <circle cx="18" cy="5" r="3" fill="none" stroke="#fff" stroke-width="2"/>
         <circle cx="6" cy="12" r="3" fill="none" stroke="#fff" stroke-width="2"/>
@@ -272,7 +273,8 @@
         <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
-    <button class="btn-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal rd-body" onclick="event.stopPropagation()">
     <img id="modalImg" src="" alt="">
     <div class="modal-info">
       <div id="modalHeader" class="modal-header"></div>
@@ -360,7 +362,7 @@
       <span class="streak-label">天</span>
     </div>
     <div class="share-card-image-wrap">
-      <img id="shareCardImg" src="" alt="" crossorigin="anonymous">
+      <img id="shareCardImg" src="" alt="">
     </div>
     <div class="share-card-divider"></div>
     <div class="share-card-feedback" id="shareCardFeedback"></div>
@@ -379,16 +381,11 @@
       <img id="sharePreviewImg" src="" alt="分享预览">
     </div>
     <div class="share-preview-actions">
-      <button class="btn btn-primary btn-lg" id="shareSystemBtn" onclick="shareViaSystem()">
-        <span>📤</span> 分享给好友
+      <button class="btn btn-primary btn-lg" id="shareCommunityBtn" onclick="shareToCommunityFromPreview()">
+        <span>🌍</span> 分享到社区
       </button>
-      <button class="btn btn-secondary btn-lg" onclick="downloadShareImage()">
-        <span>💾</span> 保存到相册
-      </button>
-    </div>
-    <div class="share-preview-community">
-      <button class="btn btn-community btn-lg" id="shareCommunityBtn" onclick="shareToCommunityFromPreview()">
-        <span>🌍</span> 同时分享到社区
+      <button class="btn btn-secondary btn-lg" id="shareSystemBtn" onclick="shareViaSystem()">
+        <span>📤</span> 分享到其他
       </button>
     </div>
     <div class="share-preview-tip">支持分享到微信、朋友圈、小红书</div>
@@ -396,13 +393,13 @@
 </div>
 
 <!-- ─── 模块化加载（顺序：依赖基础 → 功能域） ─── -->
-<script src="static/js/state.js?v=20260731v49"></script>
-<script src="static/js/onboarding.js?v=20260731v49"></script>
-<script src="static/js/themes.js?v=20260731v49"></script>
-<script src="static/js/camera.js?v=20260731v49"></script>
-<script src="static/js/feedback.js?v=20260731v49"></script>
-<script src="static/js/timeline.js?v=20260731v49"></script>
-<script src="static/js/community.js?v=20260731v49"></script>
-<script src="static/js/share.js?v=20260731v49"></script>
+<script src="static/js/state.js?v=20260731v56"></script>
+<script src="static/js/onboarding.js?v=20260731v56"></script>
+<script src="static/js/themes.js?v=20260731v56"></script>
+<script src="static/js/camera.js?v=20260731v56"></script>
+<script src="static/js/feedback.js?v=20260731v56"></script>
+<script src="static/js/timeline.js?v=20260731v56"></script>
+<script src="static/js/community.js?v=20260731v56"></script>
+<script src="static/js/share.js?v=20260731v56"></script>
 </body>
 </html>

@@ -485,7 +485,7 @@ function showCalDay(key) {
 // renderGrowth / drawRadarChart removed in v3.0 (growth page hidden for MVP)
 // ─── Modal ───
 function openModal(record) {
-  const modal = document.getElementById('modal');
+  const modal = document.getElementById('recordDetailPage');
   document.getElementById('modalImg').src = `${API_BASE}/data/${record.image}`;
   currentRecordId = record.id;  // 保存当前记录 ID，用于删除
 
@@ -638,7 +638,7 @@ function openModal(record) {
 }
 
 function closeModal() {
-  const modal = document.getElementById('modal');
+  const modal = document.getElementById('recordDetailPage');
   // 移除滚动监听
   if (modal._scrollHandler && modal._scrollTarget) {
     modal._scrollTarget.removeEventListener('scroll', modal._scrollHandler);
@@ -680,24 +680,8 @@ function confirmDeleteRecord() {
   });
 }
 
-// ── 点击遮罩关闭弹窗（事件委托，避免 inline onclick 在移动端失效）──
-document.addEventListener('DOMContentLoaded', function() {
-  const overlay = document.getElementById('modal');
-  if (overlay) {
-    overlay.addEventListener('click', function(e) {
-      // 仅当点击的是遮罩本身（非内部 .modal）时关闭
-      if (e.target === overlay) {
-        closeModal();
-      }
-    });
-    // 移动端 touch 也支持
-    overlay.addEventListener('touchstart', function(e) {
-      if (e.target === overlay) {
-        closeModal();
-      }
-    }, { passive: true });
-  }
-});
+// ── 记录详情已是独立全屏页（非弹窗），不需要点击遮罩关闭 ──
+// 返回通过顶部栏「‹ 返回」按钮（onclick="closeModal()"）完成
 
 function formatTime(ts) {
   try {

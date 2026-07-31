@@ -185,18 +185,23 @@ button{ -webkit-appearance:none; appearance:none; background:none; border:none; 
 
 body{
   font-family: var(--font-body);
-  background: var(--color-bg-page);
   color: var(--color-text-primary);
   line-height:1.6;
   padding:0 0 80px 0;
   min-height:100dvh;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  /* 纸张纹理 — 暖色光晕 + 微噪声 */
+  /* 首页背景：onboarding 同款纸韵渐变做底 + 三层暖光柔光叠加 + 底色兜底。
+     渐变前 50% 为引导同款过渡（bg-page → bg-subtle），后半段延续到更深的
+     paper-400，让视口内顶浅底深的过渡可感知；background-attachment:fixed
+     让渐变跟随视口（iOS Safari 忽略 fixed 自动退化为跟随内容）。 */
+  background-color: var(--color-bg-page);
+  background-attachment: fixed;
   background-image:
     radial-gradient(circle at 20% 30%, rgba(201, 125, 91, 0.04) 0%, transparent 50%),
     radial-gradient(circle at 80% 70%, rgba(123, 155, 110, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 50% 90%, rgba(217, 164, 65, 0.02) 0%, transparent 40%);
+    radial-gradient(circle at 50% 90%, rgba(217, 164, 65, 0.02) 0%, transparent 40%),
+    linear-gradient(180deg, var(--color-bg-page) 0%, var(--color-bg-subtle) 50%, var(--raw-paper-400) 100%);
 }
 
 /* ── Header ── */
@@ -1314,7 +1319,54 @@ body{
 .modal .modal-feedback p:last-child{margin-bottom:0;}
 .modal .modal-feedback strong{color:var(--color-primary-dark);font-weight:700;}
 .modal .modal-feedback .glossary-term{font-weight:600;}
-.modal .modal-time{font-size:12px;color:var(--color-text-tertiary);margin-top:10px;}
+.modal .modal-time{font-size:13px;color:var(--color-text-tertiary);margin-top:10px;}
+
+/* ── 记录详情页（独立全屏页面，替代原弹窗——分享才是弹窗） ── */
+.record-detail-page {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: var(--color-bg-page);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.record-detail-page.visible { display: block; }
+.rd-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
+}
+.rd-back {
+  background: none; border: none; cursor: pointer;
+  font-size: 15px; font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: 8px 4px;
+  display: flex; align-items: center; gap: 2px;
+}
+.rd-back:active { opacity: 0.6; }
+.rd-title { font-size: 16px; font-weight: 700; color: var(--color-text-primary); }
+/* 分享按钮移入顶部栏：去掉原弹窗的绝对定位 */
+.rd-topbar .btn-share { position: static; }
+/* 内容容器全屏铺开（覆盖原弹窗的居中/限宽/溢出隐藏/入场动画） */
+.record-detail-page .modal {
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  min-height: 100%;
+  border-radius: 0;
+  overflow-y: visible;
+  animation: none;
+  box-shadow: none;
+  background: transparent;
+}
 
 /* ── 删除按钮区 ── */
 .modal-delete-section {
@@ -1357,7 +1409,7 @@ body{
   margin-bottom: 6px;
 }
 .modal-reflection-text{
-  font-size: 15px;
+  font-size: 16px;
   color: var(--color-text-primary);
   font-style: italic;
   line-height: 1.7;
@@ -1392,12 +1444,12 @@ body{
   text-align: center;
 }
 .modal-reflection-empty-text{
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-tertiary);
   margin-bottom: 4px;
 }
 .modal-reflection-empty-hint{
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text-tertiary);
   opacity: 0.7;
 }
@@ -1415,11 +1467,11 @@ body{
   font-size: 13px;
 }
 .tt-ai-name {
-  font-size: 12px; font-weight: 600;
+  font-size: 13px; font-weight: 600;
   color: var(--color-text-primary);
 }
 .tt-ai-layer {
-  font-size: 13px; color: var(--color-text-secondary);
+  font-size: 15px; color: var(--color-text-secondary);
   line-height: 1.6; margin-bottom: 8px;
 }
 .tt-ai-tag {
@@ -1434,7 +1486,7 @@ body{
 .tt-ai-tag.sugg { background: #F3E5F5; color: #6A1B9A; }
 .tt-ai-tag.enc { background: #E0F7FA; color: #00838F; }
 .tt-ai-tip {
-  font-size: 12px; color: var(--color-text-secondary);
+  font-size: 13px; color: var(--color-text-secondary);
   background: var(--color-bg-subtle);
   padding: 8px 12px; border-radius: 8px;
   margin: -4px 0 8px 28px;
@@ -1456,7 +1508,7 @@ body{
   margin-bottom: 6px;
 }
 .modal-now-review-text{
-  font-size: 14px;
+  font-size: 16px;
   color: var(--color-text-secondary);
   line-height: 1.7;
 }
@@ -2471,7 +2523,7 @@ body.growth-mode #growthModeContent { display: block; }
 .layer-tag.l-encourage { background: var(--fb-encourage-bg); color: var(--fb-encourage); }
 
 .layer-text {
-  font-size: 15px; line-height: 1.8; color: var(--color-text-primary);
+  font-size: 15px; line-height: 1.6; color: var(--color-text-primary);
 }
 .layer-text strong { color: var(--color-primary-dark); font-weight: 700; }
 
@@ -2547,7 +2599,11 @@ body.booting::after {
   box-shadow: var(--shadow-card);
   animation: fbLayerIn .4s ease-out both;
   position: relative; overflow: hidden;
+  /* 可点击放烟花：给个按压回弹手感 */
+  cursor: pointer;
+  transition: transform .15s var(--ease-out);
 }
+.milestone-card:active { transform: scale(0.97); }
 .milestone-card::before {
   content: ''; position: absolute; inset: 0; opacity: 0.15; z-index: 0;
 }
@@ -2576,6 +2632,9 @@ body.booting::after {
 .milestone-body { flex: 1; }
 .milestone-title { font-size: 15px; font-weight: 800; color: var(--color-text-primary); }
 .milestone-desc { font-size: 12px; color: var(--color-text-secondary); line-height: 1.4; margin-top: 2px; }
+/* 记录详情弹窗内里程碑放大 1px（反馈页保持紧凑不抢主视觉） */
+.modal .milestone-title { font-size: 16px; }
+.modal .milestone-desc { font-size: 13px; }
 /* 早期里程碑（绿系）：饱和绿底 + 白字，保证对比可读 */
 .milestone-card.m1 .milestone-title,
 .milestone-card.m5 .milestone-title { color: #fff; }
@@ -3124,7 +3183,7 @@ body.booting::after {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: var(--modal-overlay);
-  z-index: 200;
+  z-index: 320;
   justify-content: center;
   align-items: center;
   padding: 24px;
@@ -3988,7 +4047,7 @@ body.booting::after {
   right: 0;
   bottom: 0;
   background: var(--modal-overlay);
-  z-index: 250;
+  z-index: 320;
   justify-content: center;
   align-items: center;
   padding: 16px;
@@ -4054,22 +4113,6 @@ body.booting::after {
 }
 .share-preview-actions .btn {
   flex: 1;
-}
-.share-preview-community {
-  padding: 0 20px 12px;
-}
-.share-preview-community .btn-community {
-  width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  border: none;
-  font-weight: 600;
-  justify-content: center;
-  gap: 6px;
-}
-.share-preview-community .btn-community:active {
-  transform: scale(0.98);
-  opacity: 0.9;
 }
 .share-preview-tip {
   text-align: center;

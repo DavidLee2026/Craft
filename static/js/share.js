@@ -56,36 +56,30 @@ async function generateShareCard(record) {
     }
 
     // cache:'no-store'：图片之前可能被 <img> 加载过并缓存，
-    // 若 Flask 返回 304（无 body），blob() 会拿到空 Blob 导致分享图生成失败。
-    // 用 data URL 而非 blob URL：html-to-image 无法绘制 blob URL 图片（内部 fetch blob 报错），data URL 稳定。
+    // 若 Flask 返回 304（无 body），blob() 会拿到空 Blob。
     const imgUrl = `${API_BASE}/data/${record.image}`;
     const imgResp = await fetch(imgUrl, { cache: 'no-store' });
+    if (!imgResp.ok) throw new Error(`图片加载失败 ${imgResp.status}`);
     const imgBlob = await imgResp.blob();
     imgEl.src = await blobToDataUrl(imgBlob);
 
-    await new Promise((resolve, reject) => {
-      imgEl.onload = resolve;
-      imgEl.onerror = reject;
-      if (imgEl.complete) resolve();
-    });
+    // 显式等待像素解码完成（data URL 下 complete 同步 true，但解码异步，移动端尤其慢）
+    await waitImageDecoded(imgEl);
+    if (!imgEl.naturalWidth) throw new Error('图片解码失败');
 
     feedbackEl.textContent = extractFeedbackSummary(record);
 
     // 记录当前分享对应的记录 ID，供「分享到社区」使用
     currentShareRecordId = record.id;
 
-    const cardEl = document.getElementById('shareCard');
-    const dataUrl = await htmlToImage.toPng(cardEl, {
-      quality: 0.95,
-      pixelRatio: 1,
-      cacheBust: true,
-    });
+    // 原生 Canvas 合成分享图。
+    // 弃用 html-to-image：其移动端（iOS Safari / 微信 WebView）绘制 <img> 不可靠——
+    // 内部强制 crossOrigin 再加载 data URL，在 WebView 里图片静默加载失败 → 分享图图片区空白。
+    const dataUrl = await renderShareCardNative(imgEl);
 
     currentShareDataUrl = dataUrl;
 
     document.getElementById('sharePreviewImg').src = dataUrl;
-    const canShare = navigator.share && navigator.canShare && navigator.canShare({ files: [] });
-    document.getElementById('shareSystemBtn').style.display = canShare ? 'flex' : 'none';
 
     document.getElementById('sharePreviewOverlay').classList.add('visible');
     document.body.style.overflow = 'hidden';
@@ -96,12 +90,214 @@ async function generateShareCard(record) {
   }
 }
 
+// ─── 原生 Canvas 合成分享图 ───
+// 布局与 .share-card CSS 保持一致；颜色从 DOM 计算样式读取，不在 JS 里硬编码。
+function renderShareCardNative(paintingImg) {
+  return new Promise((resolve, reject) => {
+    try {
+      const card = document.getElementById('shareCard');
+      const logoEl = document.querySelector('.share-card-logo');
+      const dateEl = document.getElementById('shareCardDate');
+      const streakEl = document.getElementById('shareCardStreak');
+      const streakDaysEl = document.getElementById('shareCardStreakDays');
+      const feedbackEl = document.getElementById('shareCardFeedback');
+      const footerEl = document.querySelector('.share-card-footer');
+
+      const ready = (document.fonts && document.fonts.ready)
+        ? document.fonts.ready
+        : Promise.resolve();
+
+      ready.then(() => {
+        const W = 1080;
+        const padTop = 60, padBottom = 50;
+        const imgSize = 960;                 // 图片区 .share-card-image-wrap
+        const serif = '"Noto Serif SC","Songti SC",serif';
+        const sans = '-apple-system,"PingFang SC","Noto Sans SC",sans-serif';
+
+        // 颜色从计算样式读取（与 CSS 一致）
+        const bgColor = getComputedStyle(card).backgroundColor;
+        const logoColor = getComputedStyle(logoEl).color;
+        const dateColor = getComputedStyle(dateEl).color;
+        const feedbackColor = getComputedStyle(feedbackEl).color;
+        const footerColor = getComputedStyle(footerEl).color;
+        const imgWrapBg = getComputedStyle(document.querySelector('.share-card-image-wrap')).backgroundColor;
+
+        const logoText = logoEl.textContent;
+        const dateText = dateEl.textContent;
+        const feedbackText = feedbackEl.textContent;
+        const footerText = footerEl.textContent;
+        const showStreak = streakEl.style.display !== 'none';
+        const streakDays = streakDaysEl.textContent;
+
+        // ── 布局测量（按 CSS 间距推算） ──
+        const meas = document.createElement('canvas');
+        const mctx = meas.getContext('2d');
+        mctx.font = '500 26px ' + sans;
+        const fbLines = wrapText(mctx, feedbackText, 880);
+        const fbLineH = 26 * 1.7;
+
+        let y = padTop;
+        const logoTop = y; y += 60;          // logo 行
+        y += 10 + 30;                        // 日期行（logo margin-bottom 10）
+        y += 36;                             // brand 区 margin-bottom
+        let streakTop = null;
+        if (showStreak) { streakTop = y; y += 100 + 28; }  // pill + margin-bottom 28
+        const imgTop = y; y += imgSize;      // 图片区 960
+        const dividerTop = y + 36; y += 36 + 3 + 36;        // divider + 上下 margin
+        const fbTop = y; y += fbLines.length * fbLineH;
+        y += 36 + 26 + padBottom;            // footer + 底部
+        const H = y;
+
+        // ── 正式绘制 ──
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'middle';
+
+        // 背景
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, W, H);
+
+        // logo（居中）
+        ctx.font = '700 42px ' + serif;
+        ctx.fillStyle = logoColor;
+        ctx.textAlign = 'center';
+        ctx.fillText(logoText, W / 2, logoTop + 30);
+
+        // 日期
+        ctx.font = '500 22px ' + sans;
+        ctx.fillStyle = dateColor;
+        ctx.fillText(dateText, W / 2, logoTop + 60 + 25);
+
+        // streak pill（渐变圆角胶囊，与 .share-card-streak 一致）
+        if (streakTop !== null) {
+          const pillH = 100, pillCy = streakTop + pillH / 2;
+          mctx.font = '800 64px ' + sans;
+          const daysW = mctx.measureText(streakDays).width;
+          mctx.font = '600 28px ' + sans;
+          const labelW = mctx.measureText('天').width;
+          mctx.font = '48px ' + sans;
+          const flameW = Math.max(60, mctx.measureText('🔥').width);
+          const gap = 4;
+          const contentW = flameW + gap + daysW + gap + labelW;
+          const pillW = contentW + 36 * 2;
+          const pillX = (W - pillW) / 2;
+          // 渐变端点与 .share-card-streak background 一致
+          roundRectPath(ctx, pillX, streakTop, pillW, pillH, pillH / 2);
+          const grad = ctx.createLinearGradient(0, streakTop, 0, streakTop + pillH);
+          grad.addColorStop(0, '#FF6B35');
+          grad.addColorStop(1, '#F7931E');
+          ctx.fillStyle = grad;
+          ctx.fill();
+          // 内容居中：🔥 + 天数 + 天
+          let cx = pillX + 36 + flameW / 2;
+          ctx.font = '48px ' + sans;
+          ctx.fillStyle = '#fff';
+          ctx.textAlign = 'center';
+          ctx.fillText('🔥', cx, pillCy);
+          cx += flameW / 2 + gap + daysW / 2;
+          ctx.font = '800 64px ' + sans;
+          ctx.fillText(streakDays, cx, pillCy);
+          cx += daysW / 2 + gap + labelW / 2;
+          ctx.font = '600 28px ' + sans;
+          ctx.fillStyle = 'rgba(255,255,255,0.95)';
+          ctx.fillText('天', cx, pillCy);
+        }
+
+        // 图片区（白底圆角 + 阴影 + 图片 contain）
+        const imgX = (W - imgSize) / 2;
+        ctx.save();
+        ctx.shadowColor = 'rgba(154,87,56,0.10)';
+        ctx.shadowBlur = 40;
+        ctx.shadowOffsetY = 8;
+        roundRectPath(ctx, imgX, imgTop, imgSize, imgSize, 20);
+        ctx.fillStyle = imgWrapBg;
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        roundRectPath(ctx, imgX, imgTop, imgSize, imgSize, 20);
+        ctx.clip();
+        const iw = paintingImg.naturalWidth, ih = paintingImg.naturalHeight;
+        const scale = Math.min(imgSize / iw, imgSize / ih);
+        const dw = iw * scale, dh = ih * scale;
+        ctx.drawImage(paintingImg, imgX + (imgSize - dw) / 2, imgTop + (imgSize - dh) / 2, dw, dh);
+        ctx.restore();
+
+        // 分割线
+        roundRectPath(ctx, W / 2 - 30, dividerTop, 60, 3, 2);
+        ctx.fillStyle = logoColor;
+        ctx.fill();
+
+        // 反馈文字（居中多行）
+        ctx.font = '500 26px ' + sans;
+        ctx.fillStyle = feedbackColor;
+        ctx.textAlign = 'center';
+        fbLines.forEach((line, i) => {
+          ctx.fillText(line, W / 2, fbTop + i * fbLineH + fbLineH / 2);
+        });
+
+        // footer
+        ctx.font = '400 18px ' + sans;
+        ctx.fillStyle = footerColor;
+        ctx.fillText(footerText, W / 2, H - padBottom - 13);
+
+        resolve(canvas.toDataURL('image/png'));
+      }).catch(reject);
+    } catch (e) { reject(e); }
+  });
+}
+
+// canvas 文本自动换行
+function wrapText(ctx, text, maxWidth) {
+  const lines = [];
+  let line = '';
+  for (const ch of text) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = ch;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// 手写圆角矩形路径（兼容不支持 roundRect 的老 WebView）
+function roundRectPath(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(blob);
+  });
+}
+
+// 等待图片像素真正解码完成（decode() 返回的 promise 保证可被 canvas 绘制）
+function waitImageDecoded(img) {
+  if (typeof img.decode === 'function') {
+    return img.decode().catch(() => new Promise(resolve => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+      if (img.complete) resolve();
+    }));
+  }
+  return new Promise(resolve => {
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    if (img.complete) resolve();
   });
 }
 
@@ -136,13 +332,20 @@ async function shareToCommunityFromPreview() {
 
 async function shareViaSystem() {
   if (!currentShareDataUrl) return;
-  try {
-    const resp = await fetch(currentShareDataUrl);
-    const blob = await resp.blob();
-    const file = new File([blob], `每日绘-${new Date().toISOString().slice(0,10)}.png`, { type: 'image/png' });
-    await navigator.share({ files: [file], title: '我的每日绘分享', text: '来看看我画的画！' });
-  } catch (e) {
-    if (e.name !== 'AbortError') showToast('分享失败，请尝试保存到相册', 'error');
+  const canShare = navigator.share && navigator.canShare && navigator.canShare({ files: [] });
+  if (canShare) {
+    // 系统分享面板：微信/朋友圈/小红书/其他 App
+    try {
+      const resp = await fetch(currentShareDataUrl);
+      const blob = await resp.blob();
+      const file = new File([blob], `每日绘-${new Date().toISOString().slice(0,10)}.png`, { type: 'image/png' });
+      await navigator.share({ files: [file], title: '我的每日绘分享', text: '来看看我画的画！' });
+    } catch (e) {
+      if (e.name !== 'AbortError') showToast('分享未完成', 'error');
+    }
+  } else {
+    // 环境不支持系统分享面板（部分 WebView）：降级为保存图片，用户自行分享
+    downloadShareImage();
   }
 }
 

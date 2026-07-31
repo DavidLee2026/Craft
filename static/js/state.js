@@ -123,6 +123,11 @@ function showAchievementPopup(milestone) {
       <div class="ach-title">${escapeHtml(milestone.title || '恭喜！')}</div>
       <div class="ach-desc">${escapeHtml(shortCongrats[milestone.number] || '继续保持！')}</div>
     </div>`;
+  // 先强制渲染隐藏态（-200px 屏幕外），下一帧再切 visible 触发滑入过渡：
+  // 首次创建的元素若直接加 visible，浏览器首次布局就在最终位置，transition 无从发生 → 通知条直接弹出没有动画。
+  popup.style.top = '-200px';
+  popup.classList.remove('visible');
+  void popup.offsetHeight;  // 强制同步布局，确保 -200px 已生效
   popup.style.top = '';
   popup.classList.add('visible');
   // 滑入到位后放烟花庆祝
@@ -136,14 +141,20 @@ function showAchievementPopup(milestone) {
 }
 
 // ─── 成就烟花：从通知条位置向外爆开彩纸粒子 ───
+const CONFETTI_COLORS = [
+  'var(--raw-clay-500)', 'var(--raw-sage-500)', 'var(--raw-ochre-500)',
+  'var(--raw-sage-700)', 'var(--raw-ochre-300)', 'var(--raw-sage-300)'
+];
+
 function burstConfetti(origin) {
-  const colors = [
-    'var(--raw-clay-500)', 'var(--raw-sage-500)', 'var(--raw-ochre-500)',
-    'var(--raw-sage-700)', 'var(--raw-ochre-300)', 'var(--raw-sage-300)'
-  ];
   const rect = origin.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
+  burstConfettiAt(rect.left + rect.width / 2, rect.top + rect.height / 2);
+}
+
+// 从指定坐标爆开彩纸粒子（成就通知条 + 点击里程碑卡片共用）
+function burstConfettiAt(x, y) {
+  // 防连点堆积：粒子存活数超过上限则忽略本次，保流畅
+  if (document.querySelectorAll('.confetti-piece').length > 120) return;
   for (let i = 0; i < 42; i++) {
     const p = document.createElement('div');
     p.className = 'confetti-piece';
@@ -152,8 +163,8 @@ function burstConfetti(origin) {
     const rot = Math.random() * 760 - 380;
     const size = 6 + Math.random() * 6;
     p.style.cssText =
-      `left:${cx}px;top:${cy}px;width:${size}px;height:${size * 0.6}px;` +
-      `background:${colors[i % colors.length]};` +
+      `left:${x}px;top:${y}px;width:${size}px;height:${size * 0.6}px;` +
+      `background:${CONFETTI_COLORS[i % CONFETTI_COLORS.length]};` +
       `transition-delay:${Math.random() * 0.15}s;`;
     document.body.appendChild(p);
     // 先渲染初始位置，下一帧再触发扩散动画
@@ -164,6 +175,19 @@ function burstConfetti(origin) {
     setTimeout(() => p.remove(), 1500);
   }
 }
+
+// ─── 点击里程碑卡片绽放烟花（可无限次点击） ───
+// 事件委托：里程碑卡片由 JS 动态渲染（反馈页 + 记录详情弹窗），绑 document 一次全覆盖。
+// 用 capture 阶段（第三个参数 true）：记录详情弹窗的 .modal 容器有
+// onclick="event.stopPropagation()"，冒泡阶段会在 .modal 被截断到不了 document；
+// capture 阶段最先执行、先于 stopPropagation，两种位置的卡片都能命中。
+// 点哪里就从哪里爆开，每次点击独立触发，不设次数上限。
+document.addEventListener('click', (e) => {
+  const card = e.target.closest('.milestone-card');
+  if (card) {
+    burstConfettiAt(e.clientX, e.clientY);
+  }
+}, true);
 
 // ─── HTML 转义 ───
 function escapeHtml(str) {
