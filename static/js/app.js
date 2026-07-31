@@ -815,10 +815,29 @@ function openUpload() {
   document.getElementById('uploadInput').click();
 }
 
+// 已提交图片指纹集（name+size+lastModified），防止重复上传
+const uploadedFileFingerprints = new Set();
+
+function fileFingerprint(file) {
+  return `${file.name}|${file.size}|${file.lastModified}`;
+}
+
+function handleFileSelect(e) {
+  if (!e.target.files.length) return;
+  const file = e.target.files[0];
+  const fp = fileFingerprint(file);
+  if (uploadedFileFingerprints.has(fp)) {
+    showToast('这张图已经上传过了 📸');
+    e.target.value = '';
+    return;
+  }
+  showPreview(file);
+}
+
+// 相册上传才检查重复（相机每次拍的都是新照片，不拦截）
+document.getElementById('uploadInput').addEventListener('change', handleFileSelect);
+// 相机拍照直接放行
 document.getElementById('cameraInput').addEventListener('change', e => {
-  if (e.target.files.length) showPreview(e.target.files[0]);
-});
-document.getElementById('uploadInput').addEventListener('change', e => {
   if (e.target.files.length) showPreview(e.target.files[0]);
 });
 
@@ -852,6 +871,10 @@ function cancelPreview() {
 
 function submitDrawing() {
   if (!pendingFile) return;
+
+  // 记录已提交指纹，下次选同一张图会提示已上传
+  const fp = fileFingerprint(pendingFile);
+  uploadedFileFingerprints.add(fp);
 
   // 预览区不隐藏也不跳全屏——照片保持在原位
   document.querySelector('.preview-confirm-actions').style.display = 'none';
@@ -918,11 +941,11 @@ async function uploadImage(file) {
   // 简洁等待提示（流式反馈会逐步替代）
   showSimpleWaiting();
 
-  // 滚动到 loading 区域底部，确保完全可见
+  // 滚动到反馈区域，确保完全可见
   setTimeout(() => {
-    const waitingArea = document.getElementById('waitingArea');
-    if (waitingArea) {
-      const rect = waitingArea.getBoundingClientRect();
+    const fb = document.getElementById('feedbackEnhanced');
+    if (fb) {
+      const rect = fb.getBoundingClientRect();
       const scrollTop = window.pageYOffset + rect.bottom - window.innerHeight + 24;
       window.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
     }
@@ -1318,21 +1341,24 @@ function showFeedback(record) {
 
 // ─── 简洁等待提示（流式反馈逐步替代） ───
 function showSimpleWaiting() {
-  const area = document.getElementById('waitingArea');
-  area.innerHTML = `
+  // loading 态直接放在反馈容器中，不单独占区域
+  const container = document.getElementById('feedbackEnhanced');
+  container.classList.add('visible');
+  document.getElementById('aiNameEnhanced').textContent = '小绘';
+  document.getElementById('aiSubtitleEnhanced').textContent = 'AI 正在看你的画…';
+  document.getElementById('milestoneSlot').innerHTML = '';
+  document.getElementById('fbDepthLayer').innerHTML = '';
+  document.getElementById('fbLayersContainer').innerHTML = `
     <div class="simple-waiting">
       <div class="simple-waiting-dots">
         <span></span><span></span><span></span>
       </div>
-      <span class="simple-waiting-text">AI 正在看你的画…</span>
     </div>`;
-  area.classList.add('active');
 }
 
 function stopSimpleWaiting() {
-  const area = document.getElementById('waitingArea');
-  area.classList.remove('active');
-  area.innerHTML = '';
+  // loading 内容由后续 first_impression 或 layer 替换，此处只需清除
+  document.getElementById('fbLayersContainer').innerHTML = '';
 }
 
 // ─── 5层增强反馈渲染 ───
