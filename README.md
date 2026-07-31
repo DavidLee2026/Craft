@@ -105,13 +105,25 @@ python3 app.py
 ## 项目结构
 
 ```
-├── app.py               # Flask 后端（API 路由 + AI 分析管线）
+├── app.py               # Flask 主入口（路由组装 + 启动）
+├── config.py            # 配置与基础设施（路径 / 模型常量 / client）
+├── data_store.py        # 数据层（持久化 + 里程碑 / 连胜 / 推荐）
+├── ai_service.py        # AI 分析服务（prompt 构建 / SSE 流式）
+├── community_api.py     # 社区 Blueprint
 ├── growth_stages.py     # 成长关卡数据（400 关，预备上线）
 ├── requirements.txt     # Python 依赖
 ├── static/
 │   ├── index.html       # 前端 SPA 入口
 │   ├── css/style.css    # 完整设计系统
-│   ├── js/app.js        # 前端逻辑
+│   ├── js/              # 前端模块（按依赖顺序加载）
+│   │   ├── state.js       # 全局状态 + 通用工具
+│   │   ├── onboarding.js  # 引导 / 画像 / 统计 / 初始化
+│   │   ├── themes.js      # 今日主题 + 主题库
+│   │   ├── camera.js      # 相机 / 上传 / 提交
+│   │   ├── feedback.js    # AI 流式反馈 + 反思交互
+│   │   ├── timeline.js    # 记录页 / 日历 / 详情弹窗
+│   │   ├── community.js   # 社区
+│   │   └── share.js       # 画作分享图生成
 │   ├── manifest.json    # PWA 配置
 │   └── sw.js            # Service Worker
 ├── data/                # 用户数据（自动生成，不提交）

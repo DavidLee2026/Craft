@@ -3725,3 +3725,201 @@ body.booting::after {
 .community-comment-send:active {
   transform: scale(0.97);
 }
+/* ── 画作分享卡（用于生成分享图） ── */
+.share-card {
+  width: 1080px;
+  padding: 60px 60px 50px;
+  background: #F7F2EA;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans SC', sans-serif;
+}
+.share-card-brand {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.share-card-logo {
+  display: block;
+  font-size: 42px;
+  font-weight: 700;
+  color: #C97D5B;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+.share-card-date {
+  font-size: 22px;
+  color: #8B7E72;
+  font-weight: 500;
+}
+.share-card-streak {
+  text-align: center;
+  margin: -10px auto 28px;
+  padding: 18px 36px;
+  background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+  border-radius: 50px;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 6px 24px rgba(255,107,53,0.35);
+}
+.share-card-streak .streak-flame {
+  font-size: 48px;
+  line-height: 1;
+  margin-right: 6px;
+}
+.share-card-streak .streak-days {
+  font-size: 64px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.share-card-streak .streak-label {
+  font-size: 28px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.95);
+  line-height: 1;
+}
+.share-card-image-wrap {
+  width: 960px;
+  height: 960px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 8px 40px rgba(154,87,56,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+.share-card-image-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.share-card-divider {
+  width: 60px;
+  height: 3px;
+  background: #C97D5B;
+  margin: 36px auto;
+  border-radius: 2px;
+}
+.share-card-feedback {
+  text-align: center;
+  font-size: 26px;
+  line-height: 1.7;
+  color: #3A322C;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 20px;
+  font-weight: 500;
+}
+.share-card-footer {
+  text-align: center;
+  margin-top: 36px;
+  font-size: 18px;
+  color: #B5A99E;
+  letter-spacing: 2px;
+}
+
+/* ── 分享图预览弹窗 ── */
+.share-preview-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--modal-overlay);
+  z-index: 250;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+.share-preview-overlay.visible {
+  display: flex;
+}
+.share-preview-dialog {
+  background: var(--modal-bg);
+  border-radius: var(--modal-radius);
+  max-width: 420px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  position: relative;
+  animation: modalSlideUp 0.35s var(--ease-out);
+}
+.share-preview-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.08);
+  border: none;
+  font-size: 18px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+}
+.share-preview-title {
+  text-align: center;
+  padding: 20px 20px 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-light);
+}
+.share-preview-img-wrap {
+  padding: 16px 20px;
+  max-height: 55vh;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--color-bg-subtle);
+}
+.share-preview-img-wrap img {
+  max-width: 100%;
+  max-height: 52vh;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  display: block;
+}
+.share-preview-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+}
+.share-preview-actions .btn {
+  flex: 1;
+}
+.share-preview-community {
+  padding: 0 20px 12px;
+}
+.share-preview-community .btn-community {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  justify-content: center;
+  gap: 6px;
+}
+.share-preview-community .btn-community:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+.share-preview-tip {
+  text-align: center;
+  padding: 0 20px 16px;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
