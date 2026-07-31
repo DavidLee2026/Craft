@@ -125,12 +125,44 @@ function showAchievementPopup(milestone) {
     </div>`;
   popup.style.top = '';
   popup.classList.add('visible');
+  // 滑入到位后放烟花庆祝
+  setTimeout(() => burstConfetti(popup), 650);
   if (achievementTimer) clearTimeout(achievementTimer);
   achievementTimer = setTimeout(() => {
     popup.classList.remove('visible');
     // 延迟重置 top 到完全隐藏位置，等过渡动画完成
     setTimeout(() => { popup.style.top = '-200px'; }, 600);
   }, 4000);
+}
+
+// ─── 成就烟花：从通知条位置向外爆开彩纸粒子 ───
+function burstConfetti(origin) {
+  const colors = [
+    'var(--raw-clay-500)', 'var(--raw-sage-500)', 'var(--raw-ochre-500)',
+    'var(--raw-sage-700)', 'var(--raw-ochre-300)', 'var(--raw-sage-300)'
+  ];
+  const rect = origin.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  for (let i = 0; i < 42; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const dx = (Math.random() - 0.5) * 460;
+    const dy = -(Math.random() * 200 + 40) + (Math.random() - 0.5) * 60;
+    const rot = Math.random() * 760 - 380;
+    const size = 6 + Math.random() * 6;
+    p.style.cssText =
+      `left:${cx}px;top:${cy}px;width:${size}px;height:${size * 0.6}px;` +
+      `background:${colors[i % colors.length]};` +
+      `transition-delay:${Math.random() * 0.15}s;`;
+    document.body.appendChild(p);
+    // 先渲染初始位置，下一帧再触发扩散动画
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      p.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot}deg)`;
+      p.style.opacity = '0';
+    }));
+    setTimeout(() => p.remove(), 1500);
+  }
 }
 
 // ─── HTML 转义 ───
@@ -248,4 +280,28 @@ function showError(msg) {
   el.classList.add('visible');
   document.getElementById('spinner').classList.remove('active');
 }
+
+// ─── 防移动端双击缩放（JS 兜底） ───
+// iOS Safari 10+ 忽略 viewport 的 user-scalable=no，双击仍会放大区域。
+// 配合 CSS `touch-action: manipulation`，这里对老内核（微信 X5 等）兜底：
+// 检测 320ms 内、25px 范围内的两次点击 → 阻止浏览器默认缩放。
+let lastTapAt = 0;
+let lastTapX = 0;
+let lastTapY = 0;
+document.addEventListener('touchend', (e) => {
+  if (e.touches.length) return; // 多指（捏合）不处理
+  const touch = e.changedTouches[0];
+  if (!touch) return;
+  const now = Date.now();
+  const dx = touch.clientX - lastTapX;
+  const dy = touch.clientY - lastTapY;
+  if (now - lastTapAt < 320 && dx * dx + dy * dy < 2500) {
+    e.preventDefault();
+    lastTapAt = 0;
+  } else {
+    lastTapAt = now;
+    lastTapX = touch.clientX;
+    lastTapY = touch.clientY;
+  }
+}, { passive: false });
 

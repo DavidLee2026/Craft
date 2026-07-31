@@ -201,7 +201,7 @@ function resetPreviewUI() {
   const hint = document.querySelector('.preview-confirm-hint');
   if (hint) hint.textContent = '确认提交后，小绘会仔细看看这幅画';
   const quality = document.getElementById('previewQuality');
-  if (quality) { quality.textContent = ''; quality.className = 'preview-quality'; }
+  if (quality) { quality.textContent = ''; quality.className = 'preview-quality'; quality.style.display = ''; }
 }
 
 function showPreview(file) {
@@ -279,6 +279,9 @@ function showDrawingCheck() {
   document.querySelector('.preview-confirm-actions').style.display = 'none';
   document.querySelector('.preview-confirm-tag').textContent = '🔎 检测中';
   document.querySelector('.preview-confirm-hint').textContent = '小绘正在看这张是不是画作...';
+  // 用户已提交，光线提示不再需要
+  const quality = document.getElementById('previewQuality');
+  if (quality) quality.style.display = 'none';
 }
 
 function hideDrawingCheck() {

@@ -511,7 +511,7 @@ function openModal(record) {
     const LAYER_LABELS = {identify: '认出', observe: '观察', progress: '进步', suggestion: '建议', encourage: '期待'};
     const LAYER_COLORS = {identify: 'rec', observe: 'obs', progress: 'prog', suggestion: 'sugg', encourage: 'enc'};
     let html = '<div class="tt-ai-section">';
-    html += '<div class="tt-ai-header"><span class="tt-ai-avatar">🤖</span><span class="tt-ai-name">小绘 · 当时的反馈</span></div>';
+    html += '<div class="tt-ai-header"><span class="tt-ai-avatar">🧑‍🎨</span><span class="tt-ai-name">小绘 · 当时的反馈</span></div>';
     for (const layer of record.feedback_json.layers) {
       const type = layer.type;
       const color = LAYER_COLORS[type] || '';
@@ -527,7 +527,7 @@ function openModal(record) {
     // 普通版：按段落格式化
     const lines = (record.feedback || '').split('\n').filter(l => l.trim());
     let html = '<div class="tt-ai-section">';
-    html += '<div class="tt-ai-header"><span class="tt-ai-avatar">🤖</span><span class="tt-ai-name">小绘 · 当时的反馈</span></div>';
+    html += '<div class="tt-ai-header"><span class="tt-ai-avatar">🧑‍🎨</span><span class="tt-ai-name">小绘 · 当时的反馈</span></div>';
     lines.forEach(line => {
       const cleanLine = line.trim().replace(/^[\d]+[)）.、:：]?\s*/, '');
       if (!cleanLine) return;

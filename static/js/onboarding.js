@@ -7,58 +7,47 @@ const OB_STEPS = [
     title: '你好呀，我是小绘',
     sub: '你叫什么名字？这样我能用心称呼你',
     render: (d) => `
-      <div class="ob-chat">
+      <div class="ob-chat" id="obChat">
         <div class="ob-msg ob-msg-ai">
           <div class="ob-msg-avatar">✏️</div>
-          <div class="ob-msg-bubble">
-            <div class="ob-msg-name">小绘</div>
-            你好呀，我是你的 AI 画友 ✨
-          </div>
+          <div class="ob-msg-bubble">你好呀，我是你的 AI 画友 ✨</div>
         </div>
         <div class="ob-msg ob-msg-ai">
           <div class="ob-msg-avatar">✏️</div>
-          <div class="ob-msg-bubble">
-            你叫什么名字？这样我能用心称呼你
-          </div>
+          <div class="ob-msg-bubble">你叫什么名字？这样我能用心称呼你</div>
         </div>
-        <div class="ob-msg ob-msg-me">
-          <div class="ob-msg-bubble ob-input-bubble">
-            <input class="ob-input" id="obName" type="text" placeholder="输入你的名字" value="${d.name || ''}" maxlength="8" autofocus>
-          </div>
-        </div>
-        <div class="ob-greeting-preview" id="obPreview"></div>
       </div>
-      <button class="ob-btn primary" id="obNext1" disabled onclick="obNext()">准备好了 →</button>
+      <div class="ob-input-bar" id="obInputBar">
+        <input class="ob-input" id="obName" type="text" placeholder="输入你的名字" value="${d.name || ''}">
+        <button class="ob-send-btn" id="obSendBtn" disabled>发送</button>
+      </div>
     `,
-    validate: (d) => {
-      const name = document.getElementById('obName').value.trim();
-      if (name.length > 8) return null;
-      return name.length > 0 ? {name} : null;
-    },
+    validate: (d) => d.name ? {name: d.name} : null,
     onMount: () => {
       const inp = document.getElementById('obName');
-      const preview = document.getElementById('obPreview');
-      const btn = document.getElementById('obNext1');
-      if (inp) {
-        inp.focus();
-        const updatePreview = () => {
-          const name = inp.value.trim();
-          if (preview) {
-            preview.textContent = name ? `${name}，准备好开始了吗？ ✨` : '';
-          }
-          if (btn) {
-            btn.disabled = !name || name.length > 8;
-          }
-          if (name.length > 8) {
-            inp.classList.add('shake');
-            showToast('姓名不能超过 8 个字 😅');
-            setTimeout(() => inp.classList.remove('shake'), 600);
-          }
-        };
-        inp.addEventListener('input', updatePreview);
-        // 初始触发一次
-        updatePreview();
-      }
+      const btn = document.getElementById('obSendBtn');
+      if (!inp) return;
+      inp.focus();
+      const syncBtn = () => {
+        const name = inp.value.trim();
+        if (btn) btn.disabled = !name || name.length > 8;
+        if (name.length > 8) {
+          inp.classList.add('shake');
+          showToast('姓名不能超过 8 个字 😅');
+          setTimeout(() => inp.classList.remove('shake'), 600);
+        }
+      };
+      // IME 拼音组词中不触发校验（组词中的拼音字母会短暂超 8 字符）
+      inp.addEventListener('input', (e) => {
+        if (e.isComposing) return;
+        syncBtn();
+      });
+      inp.addEventListener('compositionend', syncBtn);
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.isComposing) obSendName();
+      });
+      btn.addEventListener('click', obSendName);
+      syncBtn();
     }
   }
 ];
@@ -106,6 +95,44 @@ function renderObStep() {
   const step = OB_STEPS[obStep];
   document.getElementById('obContent').innerHTML = step.render(obData);
   if (step.onMount) setTimeout(step.onMount, 50);
+}
+
+// 微信对话式发送名字：用户绿泡泡上屏 → AI 确认 → 自动进入
+function obSendName() {
+  const inp = document.getElementById('obName');
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name || name.length > 8) return;
+
+  // 记录名字 + 提前存 onboarding
+  obData.name = name;
+  fetch(`${API_BASE}/api/onboarding`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name})
+  }).catch(() => {});
+
+  const chat = document.getElementById('obChat');
+  const bar = document.getElementById('obInputBar');
+
+  // 用户绿泡泡上屏（微信发送动画）
+  const me = document.createElement('div');
+  me.className = 'ob-msg ob-msg-me ob-msg-pop';
+  me.innerHTML = `<div class="ob-msg-bubble">${escapeHtml(name)}</div>`;
+  chat.appendChild(me);
+
+  // 输入栏退场
+  if (bar) bar.style.display = 'none';
+
+  // AI 确认回复（稍作停顿再出现，模拟 AI 回应）
+  setTimeout(() => {
+    const ai = document.createElement('div');
+    ai.className = 'ob-msg ob-msg-ai ob-msg-pop';
+    ai.innerHTML = `<div class="ob-msg-avatar">✏️</div><div class="ob-msg-bubble">${escapeHtml(name)}，准备好开始了吗？✨</div>`;
+    chat.appendChild(ai);
+    // 让用户看清 AI 回复，停留 3 秒再进入首页
+    setTimeout(obComplete, 3000);
+  }, 700);
 }
 
 function obSelect(el, field) {
@@ -216,7 +243,7 @@ async function setName() {
     <div class="confirm-icon">✏️</div>
     <div class="confirm-title">修改名字</div>
     <div class="confirm-desc">小绘该怎么称呼你呢？</div>
-    <input class="ob-input" id="setNameInput" type="text" placeholder="输入你的名字" value="${userName}" maxlength="8" style="margin-bottom:20px;text-align:center;">
+    <input class="ob-input" id="setNameInput" type="text" placeholder="输入你的名字" value="${userName}" style="margin-bottom:20px;text-align:center;">
     <div class="confirm-actions">
       <button class="btn btn-md btn-cancel" onclick="closeConfirm()">取消</button>
       <button class="btn btn-md btn-primary" id="setNameOkBtn">保存</button>
@@ -229,8 +256,9 @@ async function setName() {
   input.select();
 
   const okBtn = document.getElementById('setNameOkBtn');
-  // 输入时检测超长
-  input.addEventListener('input', () => {
+  // 输入时检测超长（IME 拼音组词中跳过，避免拼音字母被误判超长）
+  input.addEventListener('input', (e) => {
+    if (e.isComposing) return;
     if (input.value.trim().length > 8) {
       input.classList.add('shake');
       showToast('姓名不能超过 8 个字 😅');

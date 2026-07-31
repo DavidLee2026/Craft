@@ -251,17 +251,6 @@ body{
 .ob-brand-sub{
   font-size:14px;color: var(--color-text-tertiary);margin-top:var(--space-xs);
 }
-.ob-greeting-preview{
-  font-family: var(--font-display);
-  font-size:18px;font-weight:600;
-  color: var(--color-primary);
-  text-align:center;
-  margin-top:var(--space-md);
-  min-height:28px;
-  transition:opacity .3s var(--ease-out);
-}
-.ob-greeting-preview:empty{min-height:0;margin-top:0;}
-
 /* ── Onboarding 对话式（微信风格气泡） ── */
 .ob-chat {
   display: flex;
@@ -302,19 +291,6 @@ body{
   text-align: left;
 }
 .ob-msg-ai .ob-msg-bubble { border-bottom-left-radius: 4px; }
-.ob-msg-ai .ob-msg-bubble::before {
-  content: '';
-  position: absolute;
-  left: -6px; bottom: 9px;
-  border: 6px solid transparent;
-  border-right-color: var(--color-bg-card);
-}
-.ob-msg-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-primary);
-  margin-bottom: 3px;
-}
 .ob-msg-me .ob-msg-bubble {
   background: linear-gradient(135deg, var(--raw-sage-300), var(--raw-sage-500));
   color: #fff;
@@ -322,41 +298,50 @@ body{
   border-bottom-right-radius: 4px;
   box-shadow: 0 2px 10px rgba(123,155,110,.30);
 }
-.ob-msg-me .ob-msg-bubble::before {
-  content: '';
-  position: absolute;
-  right: -6px; bottom: 9px;
-  border: 6px solid transparent;
-  border-left-color: var(--raw-sage-300);
+/* 底部输入栏（微信式） */
+.ob-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 8px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-paper);
 }
-.ob-msg-me .ob-msg-bubble .ob-input {
-  background: transparent;
+.ob-input-bar input.ob-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 14px;
   border: none;
-  color: #fff;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  font-size: 15px;
   text-align: left;
-  padding: 2px 0;
-  font-size: 16px;
-  width: 200px;
-  min-height: 0;
-  caret-color: #fff;
-}
-.ob-msg-me .ob-msg-bubble .ob-input::placeholder { color: rgba(255,255,255,.75); }
-.ob-msg-me .ob-msg-bubble .ob-input:focus {
   outline: none;
-  border-color: transparent;
-  box-shadow: none;
+  color: var(--color-text-primary);
 }
-.ob-msg-me .ob-msg-bubble .ob-input.shake {
-  border: 2px solid #E05A5A;
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  background: rgba(255,255,255,.15);
+.ob-input-bar input.ob-input:focus { box-shadow: 0 0 0 2px var(--color-primary-light); }
+.ob-input-bar input.ob-input::placeholder { color: var(--color-text-tertiary); }
+.ob-send-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--raw-sage-300), var(--raw-sage-500));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--dur-press) var(--ease-press);
 }
-.ob-chat .ob-greeting-preview {
-  color: var(--color-success);
-  font-size: 16px;
-  margin-top: 4px;
-  text-align: center;
+.ob-send-btn:active { transform: scale(.94); }
+.ob-send-btn:disabled { opacity: var(--btn-disabled-opacity); cursor: not-allowed; transform: none; }
+.ob-msg-pop { animation: obPop .28s var(--ease-out); }
+@keyframes obPop {
+  from { opacity: 0; transform: translateY(8px) scale(.96); }
+  to { opacity: 1; transform: none; }
 }
 
 /* ── Greeting ── */
@@ -684,9 +669,10 @@ body{
 }
 .preview-quality {
   font-size: 13px;
+  line-height: 1.5;
   text-align: center;
   padding: 8px 12px;
-  margin: 0 0 10px;
+  margin: 0 0 14px;
   border-radius: var(--radius-sm);
   background: var(--color-success-bg);
   color: var(--color-success);
@@ -701,7 +687,7 @@ body{
   color: var(--color-text-secondary);
   text-align: center;
   line-height: 1.4;
-  margin-bottom: 12px;
+  margin: 4px 0 12px;
 }
 .preview-confirm-actions {
   display: flex;
@@ -2555,9 +2541,9 @@ body.booting::after {
 
 /* ── 里程碑卡片（设计规范配色：m1/m5 鼠尾草绿·成长 / m10/m25/m50 赭石金·成就） ── */
 .milestone-card {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 10px;
   border-radius: var(--card-radius);
-  padding: 10px 18px; margin: 10px 0 0 0;
+  padding: 8px 14px; margin: 8px 0 0 0;
   box-shadow: var(--shadow-card);
   animation: fbLayerIn .4s ease-out both;
   position: relative; overflow: hidden;
@@ -2565,21 +2551,21 @@ body.booting::after {
 .milestone-card::before {
   content: ''; position: absolute; inset: 0; opacity: 0.15; z-index: 0;
 }
-.milestone-card.m1  { background: linear-gradient(135deg, var(--raw-sage-100), #D0E0CC); border: 1.5px solid var(--raw-sage-300); }
-.milestone-card.m1::before  { background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300)); }
-.milestone-card.m5  { background: linear-gradient(135deg, var(--raw-sage-100), #B8DCB8); border: 1.5px solid var(--raw-sage-500); }
-.milestone-card.m5::before  { background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300)); }
-.milestone-card.m10 { background: linear-gradient(135deg, var(--raw-ochre-100), var(--raw-ochre-200)); border: 1.5px solid var(--raw-ochre-300); }
+.milestone-card.m1  { background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300)); }
+.milestone-card.m1::before  { background: linear-gradient(135deg, var(--raw-sage-700), var(--raw-sage-500)); }
+.milestone-card.m5  { background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300)); }
+.milestone-card.m5::before  { background: linear-gradient(135deg, var(--raw-sage-700), var(--raw-sage-500)); }
+.milestone-card.m10 { background: linear-gradient(135deg, var(--raw-ochre-100), var(--raw-ochre-200)); }
 .milestone-card.m10::before { background: linear-gradient(135deg, var(--raw-ochre-500), var(--raw-ochre-300)); }
-.milestone-card.m25 { background: linear-gradient(135deg, var(--raw-ochre-100), var(--raw-ochre-200)); border: 1.5px solid var(--raw-ochre-500); }
+.milestone-card.m25 { background: linear-gradient(135deg, var(--raw-ochre-100), var(--raw-ochre-200)); }
 .milestone-card.m25::before { background: linear-gradient(135deg, var(--raw-ochre-700), var(--raw-ochre-500)); }
-.milestone-card.m50 { background: linear-gradient(135deg, var(--raw-ochre-200), var(--raw-ochre-300)); border: 1.5px solid var(--raw-ochre-700); }
+.milestone-card.m50 { background: linear-gradient(135deg, var(--raw-ochre-200), var(--raw-ochre-300)); }
 .milestone-card.m50::before { background: linear-gradient(135deg, var(--raw-ochre-700), var(--raw-ochre-500)); }
 .milestone-card > * { position: relative; z-index: 1; }
 .milestone-icon {
-  width: 46px; height: 46px; border-radius: 50%;
+  width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; flex-shrink: 0;
+  font-size: 17px; flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(154,87,56,.12);
 }
 .milestone-icon.m1  { background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300)); }
@@ -2588,8 +2574,15 @@ body.booting::after {
 .milestone-icon.m25 { background: linear-gradient(135deg, var(--raw-ochre-700), var(--raw-ochre-500)); }
 .milestone-icon.m50 { background: linear-gradient(135deg, var(--raw-ochre-700), var(--raw-ochre-500)); }
 .milestone-body { flex: 1; }
-.milestone-title { font-size: 17px; font-weight: 800; color: var(--color-text-primary); }
-.milestone-desc { font-size: 14px; color: var(--color-text-secondary); line-height: 1.5; margin-top: 3px; }
+.milestone-title { font-size: 15px; font-weight: 800; color: var(--color-text-primary); }
+.milestone-desc { font-size: 12px; color: var(--color-text-secondary); line-height: 1.4; margin-top: 2px; }
+/* 早期里程碑（绿系）：饱和绿底 + 白字，保证对比可读 */
+.milestone-card.m1 .milestone-title,
+.milestone-card.m5 .milestone-title { color: #fff; }
+.milestone-card.m1 .milestone-desc,
+.milestone-card.m5 .milestone-desc { color: rgba(255,255,255,.92); }
+.milestone-card.m1 .milestone-icon,
+.milestone-card.m5 .milestone-icon { background: rgba(255,255,255,.22); box-shadow: 0 2px 8px rgba(58,50,44,.18); }
 
 /* ── 反思交互 ── */
 .reflection-area { margin: 12px var(--space-md); display: none; }
@@ -3092,6 +3085,16 @@ body.booting::after {
   font-size: 12px;
   opacity: 0.9;
 }
+/* 成就通知条烟花粒子（从通知条位置向外爆开，配色走设计 token） */
+.confetti-piece {
+  position: fixed;
+  border-radius: 2px;
+  z-index: 400;
+  pointer-events: none;
+  transform: translate(0, 0) rotate(0deg);
+  opacity: 1;
+  transition: transform .95s var(--ease-out), opacity .9s ease;
+}
 
 /* ================================================================
    v3.2 新增组件 · 自定义确认弹窗 + 应用内相机 + 布局优化
@@ -3343,6 +3346,7 @@ body.booting::after {
 }
 .camera-quality {
   font-size: 13px;
+  line-height: 1.5;
   text-align: center;
   padding: 8px 14px;
   margin: 12px 16px 0;
@@ -4073,3 +4077,12 @@ body.booting::after {
   font-size: 13px;
   color: var(--color-text-tertiary);
 }
+
+/* ================================================================
+   防移动端双击缩放 · v43
+   说明：iOS Safari 10+ 忽略 viewport 的 user-scalable=no（无障碍政策），
+   双击缩放必须靠 touch-action 抑制。manipulation = 允许滚动/捏合，
+   仅移除双击缩放。社区弹窗信息区保留 pan-y（纵向锁定）。
+   ================================================================ */
+* { touch-action: manipulation; }
+.community-modal .modal-info { touch-action: pan-y; }

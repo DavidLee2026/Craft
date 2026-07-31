@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#C97D5B">
 <link rel="manifest" href="/manifest.json">
 <title>每日绘 Craft</title>
-<link rel="stylesheet" href="static/css/style.css?v=20260731v40">
-<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+<link rel="stylesheet" href="static/css/style.css?v=20260731v49">
+<script src="static/js/vendor/html-to-image.min.js?v=20260731v49"></script>
 </head>
 <body class="booting">
 
@@ -161,7 +161,7 @@
   <!-- Enhanced Feedback v3.1（5层结构 + 里程碑 + 深度指示器） -->
   <div id="feedbackEnhanced" class="card feedback-section">
     <div class="feedback-header">
-      <span class="avatar">🤖</span>
+      <span class="avatar">🧑‍🎨</span>
       <div class="ai-header-text">
         <span class="ai-name" id="aiNameEnhanced">小绘</span>
         <span class="ai-subtitle" id="aiSubtitleEnhanced">仔细看了你的画，有些想说的</span>
@@ -207,7 +207,7 @@
   <!-- 旧版 Feedback（向后兼容） -->
   <div id="feedback" class="card feedback-section">
     <div class="feedback-header">
-      <span class="avatar">🤖</span>
+      <span class="avatar">🧑‍🎨</span>
       <span id="aiName" class="ai-name"></span>
       <span id="elapsedBadge" class="elapsed"></span>
     </div>
@@ -276,10 +276,10 @@
     <img id="modalImg" src="" alt="">
     <div class="modal-info">
       <div id="modalHeader" class="modal-header"></div>
-      <div id="modalReflection" style="display:none;"></div>
-      <div id="modalMilestone" style="display:none;"></div>
       <div id="modalFeedback" class="modal-feedback"></div>
+      <div id="modalReflection" style="display:none;"></div>
       <div id="modalNowReview" style="display:none;"></div>
+      <div id="modalMilestone" style="display:none;"></div>
       <div id="modalDeleteSection" class="modal-delete-section">
         <button class="btn-delete-record" onclick="confirmDeleteRecord()">🗑️ 删除这张画</button>
       </div>
@@ -396,13 +396,13 @@
 </div>
 
 <!-- ─── 模块化加载（顺序：依赖基础 → 功能域） ─── -->
-<script src="static/js/state.js?v=20260731v40"></script>
-<script src="static/js/onboarding.js?v=20260731v40"></script>
-<script src="static/js/themes.js?v=20260731v40"></script>
-<script src="static/js/camera.js?v=20260731v40"></script>
-<script src="static/js/feedback.js?v=20260731v40"></script>
-<script src="static/js/timeline.js?v=20260731v40"></script>
-<script src="static/js/community.js?v=20260731v40"></script>
-<script src="static/js/share.js?v=20260731v40"></script>
+<script src="static/js/state.js?v=20260731v49"></script>
+<script src="static/js/onboarding.js?v=20260731v49"></script>
+<script src="static/js/themes.js?v=20260731v49"></script>
+<script src="static/js/camera.js?v=20260731v49"></script>
+<script src="static/js/feedback.js?v=20260731v49"></script>
+<script src="static/js/timeline.js?v=20260731v49"></script>
+<script src="static/js/community.js?v=20260731v49"></script>
+<script src="static/js/share.js?v=20260731v49"></script>
 </body>
 </html>

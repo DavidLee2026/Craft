@@ -55,11 +55,13 @@ async function generateShareCard(record) {
       streakEl.style.display = 'none';
     }
 
-    // 用 blob URL 避免 CORS 问题
+    // cache:'no-store'：图片之前可能被 <img> 加载过并缓存，
+    // 若 Flask 返回 304（无 body），blob() 会拿到空 Blob 导致分享图生成失败。
+    // 用 data URL 而非 blob URL：html-to-image 无法绘制 blob URL 图片（内部 fetch blob 报错），data URL 稳定。
     const imgUrl = `${API_BASE}/data/${record.image}`;
-    const imgResp = await fetch(imgUrl);
+    const imgResp = await fetch(imgUrl, { cache: 'no-store' });
     const imgBlob = await imgResp.blob();
-    imgEl.src = URL.createObjectURL(imgBlob);
+    imgEl.src = await blobToDataUrl(imgBlob);
 
     await new Promise((resolve, reject) => {
       imgEl.onload = resolve;
@@ -92,6 +94,15 @@ async function generateShareCard(record) {
     console.error('生成分享图失败:', e);
     showToast('生成分享图失败，请重试', 'error');
   }
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 function extractFeedbackSummary(record) {
