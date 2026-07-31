@@ -546,7 +546,7 @@ body{
 
 /* ── 拍照确认卡片（F3 · 对齐设计规范） ── */
 .preview-confirm {
-  padding: 20px 18px 18px;
+  padding: var(--card-padding);
   animation: previewConfirmIn .45s var(--ease-spring) both;
 }
 @keyframes previewConfirmIn {
@@ -563,16 +563,16 @@ body{
   border-radius: var(--radius-pill);
   background: var(--color-success-bg);
   color: var(--color-success-dark);
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 .preview-confirm-photo {
   width: 100%;
-  height: 200px;
+  height: 180px;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-bg-subtle);
-  box-shadow: var(--shadow-lifted);
-  margin-bottom: 14px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 12px;
 }
 .preview-confirm-photo img {
   width: 100%;
@@ -586,11 +586,11 @@ body{
   to   { transform: translateY(0) scale(1); opacity: 1; }
 }
 .preview-confirm-hint {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text-secondary);
   text-align: center;
-  line-height: 1.6;
-  margin-bottom: 18px;
+  line-height: 1.4;
+  margin-bottom: 12px;
 }
 .preview-confirm-actions {
   display: flex;
@@ -641,29 +641,29 @@ body{
   background-image: none;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  margin: 12px var(--space-md);
+  padding: 12px 14px;
+  margin: 10px var(--space-md);
   box-shadow: var(--shadow-card);
 }
 .theme-library-head {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 .theme-library-title {
   font-size: 14px; font-weight: 700; color: var(--color-text-primary);
 }
 .theme-library-sub {
-  font-size: 11px; color: var(--color-text-tertiary);
+  font-size: 10px; color: var(--color-text-tertiary);
 }
 .theme-tabs {
-  display: flex; gap: 0; margin-bottom: 12px;
+  display: flex; gap: 0; margin-bottom: 8px;
   background: var(--color-bg-subtle);
   border-radius: var(--radius-md);
-  padding: 3px;
+  padding: 2px;
 }
 .theme-tab {
-  flex: 1; padding: 8px 4px;
-  font-size: 12px; font-weight: 600;
+  flex: 1; padding: 6px 4px;
+  font-size: 11px; font-weight: 600;
   border: none; background: transparent;
   color: var(--color-text-secondary);
   border-radius: 8px; cursor: pointer;
@@ -674,12 +674,13 @@ body{
 .theme-tab.active.beginner { color: var(--color-success-dark); }
 .theme-tab.active.intermediate { color: var(--color-primary); }
 .theme-tab.active.advanced { color: var(--color-accent-dark); }
-.theme-list { display: flex; flex-direction: column; gap: 8px; }
+.theme-list { display: flex; flex-direction: column; gap: 6px; }
 .theme-pick-card {
+  display: flex; align-items: center; gap: 10px;
   background: var(--raw-white);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
-  padding: 12px 14px;
+  padding: 11px 12px;
   cursor: pointer;
   transition: all var(--motion-fast) var(--ease-press);
 }
@@ -687,19 +688,23 @@ body{
 .theme-pick-card.beginner { border-left: 3px solid var(--color-success); }
 .theme-pick-card.intermediate { border-left: 3px solid var(--color-primary); }
 .theme-pick-card.advanced { border-left: 3px solid var(--color-accent); }
-.theme-pick-title { font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 5px; }
-.theme-pick-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+.theme-pick-title { font-size: 13px; font-weight: 700; color: var(--color-text-primary); flex-shrink: 0; }
+.theme-pick-tags { display: flex; gap: 4px; flex-shrink: 0; }
 .theme-diff-tag {
-  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill);
+  font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: var(--radius-pill);
 }
 .theme-diff-tag.beginner { background: var(--color-success-bg); color: var(--color-success-dark); }
 .theme-diff-tag.intermediate { background: var(--tag-primary-bg); color: var(--color-primary); }
 .theme-diff-tag.advanced { background: var(--color-accent-bg); color: var(--color-accent-dark); }
 .theme-cat-tag {
-  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill);
+  font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: var(--radius-pill);
   background: var(--color-bg-subtle); color: var(--color-text-secondary);
 }
-.theme-pick-hint { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; }
+.theme-pick-hint {
+  font-size: 11px; color: var(--color-text-tertiary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; flex: 1;
+}
 .theme-library-footer {
   padding: 8px 0 4px; font-size: 11px; color: var(--color-text-tertiary);
   text-align: center; line-height: 1.6;
@@ -2437,41 +2442,40 @@ body.booting::after {
 }
 .wbp-btn:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(201, 125, 91, 0.2); }
 
-/* ── 里程碑卡片（增强配色） ── */
+/* ── 里程碑卡片（设计规范配色：m1/m5 鼠尾草绿·成长 / m10/m25/m50 赭石金·成就） ── */
 .milestone-card {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; align-items: center; gap: 12px;
   border-radius: var(--card-radius);
-  padding: 18px 24px; margin-bottom: 14px;
-  margin-left: -12px; margin-right: -12px;
-  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  padding: 10px 18px; margin: 10px 0 0 0;
+  box-shadow: var(--shadow-card);
   animation: fbLayerIn .4s ease-out both;
   position: relative; overflow: hidden;
 }
 .milestone-card::before {
   content: ''; position: absolute; inset: 0; opacity: 0.15; z-index: 0;
 }
-.milestone-card.m1  { background: linear-gradient(135deg, #E8F0E5, #D0E0CC); border: 1.5px solid #A0C098; }
-.milestone-card.m1::before  { background: linear-gradient(135deg, #7B9B6E, #A0C098); }
-.milestone-card.m5  { background: linear-gradient(135deg, #DCF0DC, #B8DCB8); border: 1.5px solid #6BAE6B; }
-.milestone-card.m5::before  { background: linear-gradient(135deg, #3D8B3D, #6BAE6B); }
-.milestone-card.m10 { background: linear-gradient(135deg, #D4ECD4, #A8D4A8); border: 1.5px solid #5BA05B; }
-.milestone-card.m10::before { background: linear-gradient(135deg, #4A8A4A, #5BA05B); }
-.milestone-card.m25 { background: linear-gradient(135deg, #C8E4C8, #94CC94); border: 1.5px solid #4D944D; }
-.milestone-card.m25::before { background: linear-gradient(135deg, #3D7A3D, #4D944D); }
-.milestone-card.m50 { background: linear-gradient(135deg, #BCDCBC, #80C080); border: 1.5px solid #408040; }
-.milestone-card.m50::before { background: linear-gradient(135deg, #306830, #408040); }
+.milestone-card.m1  { background: linear-gradient(135deg, var(--raw-sage-100), #D0E0CC); border: 1.5px solid var(--raw-sage-300); }
+.milestone-card.m1::before  { background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300)); }
+.milestone-card.m5  { background: linear-gradient(135deg, var(--raw-sage-100), #B8DCB8); border: 1.5px solid var(--raw-sage-500); }
+.milestone-card.m5::before  { background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300)); }
+.milestone-card.m10 { background: linear-gradient(135deg, var(--raw-ochre-100), var(--raw-ochre-200)); border: 1.5px solid var(--raw-ochre-300); }
+.milestone-card.m10::before { background: linear-gradient(135deg, var(--raw-ochre-500), var(--raw-ochre-300)); }
+.milestone-card.m25 { background: linear-gradient(135deg, var(--raw-ochre-100), var(--raw-ochre-200)); border: 1.5px solid var(--raw-ochre-500); }
+.milestone-card.m25::before { background: linear-gradient(135deg, var(--raw-ochre-700), var(--raw-ochre-500)); }
+.milestone-card.m50 { background: linear-gradient(135deg, var(--raw-ochre-200), var(--raw-ochre-300)); border: 1.5px solid var(--raw-ochre-700); }
+.milestone-card.m50::before { background: linear-gradient(135deg, var(--raw-ochre-700), var(--raw-ochre-500)); }
 .milestone-card > * { position: relative; z-index: 1; }
 .milestone-icon {
   width: 46px; height: 46px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  box-shadow: 0 2px 8px rgba(154,87,56,.12);
 }
-.milestone-icon.m1  { background: linear-gradient(135deg, #7B9B6E, #A0C098); }
-.milestone-icon.m5  { background: linear-gradient(135deg, #3D8B3D, #6BAE6B); }
-.milestone-icon.m10 { background: linear-gradient(135deg, #4A8A4A, #5BA05B); }
-.milestone-icon.m25 { background: linear-gradient(135deg, #3D7A3D, #4D944D); }
-.milestone-icon.m50 { background: linear-gradient(135deg, #306830, #408040); }
+.milestone-icon.m1  { background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300)); }
+.milestone-icon.m5  { background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300)); }
+.milestone-icon.m10 { background: linear-gradient(135deg, var(--raw-ochre-500), var(--raw-ochre-300)); }
+.milestone-icon.m25 { background: linear-gradient(135deg, var(--raw-ochre-700), var(--raw-ochre-500)); }
+.milestone-icon.m50 { background: linear-gradient(135deg, var(--raw-ochre-700), var(--raw-ochre-500)); }
 .milestone-body { flex: 1; }
 .milestone-title { font-size: 17px; font-weight: 800; color: var(--color-text-primary); }
 .milestone-desc { font-size: 14px; color: var(--color-text-secondary); line-height: 1.5; margin-top: 3px; }
@@ -2930,7 +2934,7 @@ body.booting::after {
   transform: translateX(-50%) translateY(0);
 }
 
-/* ── 顶部成就弹窗（游戏成就式） ── */
+/* ── 顶部成就弹窗（游戏成就式，鼠尾草绿·成长语义） ── */
 .achievement-popup {
   position: fixed;
   top: -200px;
@@ -2940,14 +2944,14 @@ body.booting::after {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: linear-gradient(135deg, #5B9B5B, #7BB87B);
+  background: linear-gradient(135deg, var(--raw-sage-500), var(--raw-sage-300));
   color: #fff;
   padding: 14px 24px 14px 18px;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(91, 155, 91, 0.35), 0 2px 8px rgba(0,0,0,.1);
-  transition: top .6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .4s ease;
-  max-width: calc(100vw - 24px);
-  width: calc(100vw - 24px);
+  box-shadow: var(--shadow-lifted);
+  transition: top .6s var(--ease-spring), opacity .4s ease;
+  max-width: calc(100vw - 64px);
+  width: calc(100vw - 64px);
   opacity: 0;
 }
 .achievement-popup.visible {
@@ -3265,33 +3269,6 @@ body.booting::after {
   min-height: 40px;
 }
 
-/* ── 首页底部小提示卡片 ── */
-.home-tip-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  margin: 0 var(--space-md) 24px;
-}
-.home-tip-icon {
-  font-size: 22px;
-  flex-shrink: 0;
-  line-height: 1;
-  margin-top: 2px;
-}
-.home-tip-text { flex: 1; }
-.home-tip-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: 4px;
-}
-.home-tip-desc {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-}
-
 /* ═══ v3.2 新增组件 ════════════════════════════════════════ */
 
 /* ── 流式逐层动画（柔和缓动，避免机枪感） ── */
@@ -3543,9 +3520,6 @@ body.booting::after {
 .welcome-animate .main-action {
   animation: fadeUp .5s var(--ease-out) .4s both;
 }
-.welcome-animate .home-tip-card {
-  animation: fadeUp .5s var(--ease-out) .5s both;
-}
 
 /* ═══ 社区页面 ═══════════════════════════════════════ */
 .community-header {
@@ -3670,12 +3644,14 @@ body.booting::after {
   margin-bottom: 10px;
 }
 .community-comment-item {
+  display: flex; align-items: flex-start; gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid var(--color-border-light);
 }
 .community-comment-item:last-child {
   border-bottom: none;
 }
+.community-comment-body { flex: 1; min-width: 0; }
 .community-comment-author {
   font-size: 12px;
   font-weight: 600;
@@ -3693,6 +3669,16 @@ body.booting::after {
   color: var(--color-text-tertiary);
   margin-top: 2px;
 }
+.comment-like-btn {
+  flex-shrink: 0;
+  background: none; border: none;
+  font-size: 14px; cursor: pointer; padding: 2px 4px;
+  line-height: 1; border-radius: 6px;
+  color: var(--color-text-tertiary);
+  transition: all var(--motion-fast) var(--ease-press);
+}
+.comment-like-btn:active { transform: scale(1.2); }
+.comment-like-btn.liked { color: var(--color-accent-dark); }
 .community-comment-empty {
   font-size: 13px;
   color: var(--color-text-tertiary);

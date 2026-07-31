@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#C97D5B">
 <link rel="manifest" href="/manifest.json">
 <title>每日绘 Craft</title>
-<link rel="stylesheet" href="static/css/style.css?v=20260730v35">
+<link rel="stylesheet" href="static/css/style.css?v=20260731v37">
 </head>
 <body class="booting">
 
@@ -121,14 +121,7 @@
     <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="showCompositionGuide()">📐 看看构图引导</button>
   </div>
 
-  <!-- 底部小提示（填充空白） -->
-  <div class="home-tip-card card paper-layer">
-    <div class="home-tip-icon">💡</div>
-    <div class="home-tip-text">
-      <div class="home-tip-title">第一次画画？</div>
-      <div class="home-tip-desc">随便画就好，小绘不评价好坏，只陪你一起看画面</div>
-    </div>
-  </div>
+<!-- 底部小提示已移除 -->
 
   <!-- ═══ 共享元素（两个模式都使用） ═══ -->
 
@@ -140,8 +133,8 @@
     </div>
     <div class="preview-confirm-hint">确认提交后，小绘会仔细看看这幅画</div>
     <div class="preview-confirm-actions">
-      <button class="btn btn-secondary btn-lg" onclick="cancelPreview()">重拍</button>
-      <button class="btn btn-primary btn-lg" onclick="submitDrawing()">提交画作</button>
+      <button class="btn btn-secondary btn-md" onclick="cancelPreview()">重拍</button>
+      <button class="btn btn-primary btn-md" onclick="submitDrawing()">提交画作</button>
     </div>
   </div>
 
@@ -173,9 +166,9 @@
       </div>
       <span class="elapsed" id="elapsedBadgeEnhanced"></span>
     </div>
-    <div id="milestoneSlot"></div>
     <div id="fbDepthLayer"></div>
     <div id="fbLayersContainer"></div>
+    <div id="milestoneSlot"></div>
   </div>
 
   <!-- 反思交互 -->
@@ -185,11 +178,7 @@
       <div class="r-quick-options" id="reflectionQuickOptions">
         <button class="r-quick-btn" onclick="selectQuickReflection(this, '这次形状抓得比较准')">🎯 形状抓得准</button>
         <button class="r-quick-btn" onclick="selectQuickReflection(this, '线条比上次流畅了')">〰️ 线条更流畅</button>
-        <button class="r-quick-btn" onclick="selectQuickReflection(this, '整体感觉还不错')">✨ 整体不错</button>
         <button class="r-quick-btn" onclick="selectQuickReflection(this, '今天特别有感觉')">🎨 今天有感觉</button>
-        <button class="r-quick-btn" onclick="selectQuickReflection(this, '比昨天进步了')">📈 比昨天进步</button>
-        <button class="r-quick-btn" onclick="selectQuickReflection(this, '颜色搭配满意')">🎨 颜色满意</button>
-        <button class="r-quick-btn" onclick="selectQuickReflection(this, '构图比之前好了')">📐 构图好了</button>
         <button class="r-quick-btn r-quick-custom" onclick="showCustomReflection()">✏️ 自己写</button>
       </div>
       <!-- 确认发送条 -->
@@ -354,6 +343,6 @@
   </div>
 </div>
 
-<script src="static/js/app.js?v=20260730v35"></script>
+<script src="static/js/app.js?v=20260731v37"></script>
 </body>
 </html>

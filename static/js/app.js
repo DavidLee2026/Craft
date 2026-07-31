@@ -892,6 +892,33 @@ function cancelPreview() {
 function submitDrawing() {
   if (!pendingFile) return;
 
+  // 快速检测：图片是不是手绘画作
+  showDrawingCheck();
+
+  const formData = new FormData();
+  formData.append('image', pendingFile);
+
+  fetch('/api/check-drawing', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      if (data.is_drawing === false) {
+        // 不是画 → 弹窗提醒，不继续
+        hideDrawingCheck();
+        showNotDrawingPopup();
+        return;
+      }
+      // 是画 → 正常提交流程
+      hideDrawingCheck();
+      proceedSubmit();
+    })
+    .catch(() => {
+      // 检测失败也放行
+      hideDrawingCheck();
+      proceedSubmit();
+    });
+}
+
+function proceedSubmit() {
   // 记录已提交指纹，下次选同一张图会提示已上传
   const fp = fileFingerprint(pendingFile);
   uploadedFileFingerprints.add(fp);
@@ -909,6 +936,39 @@ function submitDrawing() {
   reader.readAsDataURL(pendingFile);
 
   uploadImage(pendingFile);
+}
+
+// ─── 画作检测 UI ───
+function showDrawingCheck() {
+  document.querySelector('.preview-confirm-actions').style.display = 'none';
+  document.querySelector('.preview-confirm-tag').textContent = '🔎 检测中';
+  document.querySelector('.preview-confirm-hint').textContent = '小绘正在看这张是不是画作...';
+}
+
+function hideDrawingCheck() {
+  document.querySelector('.preview-confirm-tag').textContent = '✓ 拍到了';
+  document.querySelector('.preview-confirm-hint').textContent = '确认提交后，小绘会仔细看看这幅画';
+}
+
+function showNotDrawingPopup() {
+  // 清空 pending 状态，允许重选
+  pendingFile = null;
+  document.getElementById('cameraInput').value = '';
+  document.getElementById('uploadInput').value = '';
+
+  const overlay = document.getElementById('confirmOverlay');
+  const dialog = overlay.querySelector('.confirm-dialog');
+  dialog.innerHTML = `
+    <div class="confirm-icon">🤔</div>
+    <div class="confirm-title">这个不太像画作哦</div>
+    <div class="confirm-desc">看起来不是手绘的画作，是不是选错照片了？<br><br>
+      小绘只能分析手绘的作品。<br>
+      试试再画一张然后拍下来吧 🎨</div>
+    <div class="confirm-actions">
+      <button class="btn btn-md btn-primary" onclick="closeConfirm()">知道了</button>
+    </div>
+  `;
+  overlay.classList.add('visible');
 }
 
 // ─── 客户端图片压缩 ───
@@ -1051,6 +1111,7 @@ async function uploadImage(file) {
           renderStreamingLayer(data.layer, receivedLayers.length);
         } else if (data.type === 'complete') {
           completeData = data;
+          console.log('[SSE] complete 事件收到', data.milestone ? `里程碑: ${data.milestone.number}` : '无里程碑');
         } else if (data.type === 'error') {
           stopSimpleWaiting();
           showError(data.message || '分析失败');
@@ -1210,23 +1271,24 @@ function ensurePostFeedbackUI(record) {
 // ─── AI 生成反思快选标签 ───
 function loadReflectionTags() {
   const subject = document.getElementById('themeTodayTitle')?.textContent || '';
-  // 从已渲染的反馈层中提取简短摘要作为 API 上下文
   const layers = document.querySelectorAll('#fbLayersContainer .layer-text');
   let snippet = '';
   layers.forEach((el, i) => {
     if (i < 3) snippet += el.textContent.slice(0, 80) + ' ';
   });
   snippet = snippet.trim().slice(0, 200);
+  console.log(`[reflection-tags] 请求 subject='${subject}' layers=${layers.length} snippet_len=${snippet.length}`);
 
   fetch('/api/reflection-tags', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({subject, feedback_snippet: snippet}),
-    signal: AbortSignal.timeout(5000),
+    signal: AbortSignal.timeout(15000),
   })
     .then(r => r.json())
     .then(data => {
       if (!data.tags || data.tags.length === 0) return;
+      console.log(`[reflection-tags] 收到 ${data.tags.length} 个 AI 标签`, data.tags);
       const container = document.getElementById('reflectionQuickOptions');
       if (!container) return;
       // 保留"自己写"按钮
@@ -1237,7 +1299,7 @@ function loadReflectionTags() {
       if (customBtn) container.appendChild(customBtn);
     })
     .catch(() => {
-      // 静默失败，保留硬编码标签
+      console.warn('[reflection-tags] API 超时/失败，保留硬编码标签');
     });
 }
 
@@ -1322,6 +1384,7 @@ function finalizeStreamingFeedback(completeData, receivedLayers) {
   setTimeout(() => {
     document.getElementById('reflectionArea').classList.add('visible');
     resetReflectionUI();
+    loadReflectionTags();
     if (currentDrawingSubject === '这次') {
       const themeTitle = document.getElementById('themeTitle')?.textContent || '';
       if (themeTitle && themeTitle !== '画你想画的') {
@@ -1691,6 +1754,7 @@ function sendReflection(presetText) {
               if (data.elapsed_s) {
                 const meta = replyEl.querySelector('.chat-meta.ai');
                 if (meta) meta.textContent += `  ${data.elapsed_s}s`;
+                console.log(`[reflection] SSE 完成，耗时 ${data.elapsed_s}s`);
               }
               return;
             }
@@ -1931,13 +1995,22 @@ function openCommunityPost(postId) {
               <span>💬 评论 (${comments.length})</span>
             </div>
             <div class="community-comments-list" id="communityComments_${post.id}">
-              ${comments.length > 0 ? comments.map(c => `
+              ${comments.length > 0 ? comments.map(c => {
+                const cLiked = (c.liked_by || []).includes(userName);
+                return `
                 <div class="community-comment-item">
-                  <div class="community-comment-author">${escapeHtml(c.author || '小伙伴')}</div>
-                  <div class="community-comment-content">${escapeHtml(c.content)}</div>
-                  <div class="community-comment-time">${formatDate(c.timestamp)}</div>
-                </div>
-              `).join('') : '<div class="community-comment-empty">还没有评论，来说两句吧~</div>'}
+                  <div class="community-comment-body">
+                    <div class="community-comment-author">${escapeHtml(c.author || '小伙伴')}</div>
+                    <div class="community-comment-content">${escapeHtml(c.content)}</div>
+                    <div class="community-comment-time">${formatDate(c.timestamp)}</div>
+                  </div>
+                  <button class="comment-like-btn ${cLiked ? 'liked' : ''}"
+                    onclick="likeCommunityComment('${post.id}','${c.id}', this)"
+                    ${cLiked ? 'disabled' : ''}>
+                    ${cLiked ? '❤️' : '🤍'}${c.likes ? ' ' + c.likes : ''}
+                  </button>
+                </div>`;
+              }).join('') : '<div class="community-comment-empty">还没有评论，来说两句吧~</div>'}
             </div>
             <div class="community-comment-input-row">
               <input type="text" class="community-comment-input" id="communityCommentInput_${post.id}" placeholder="写下你的评论..." maxlength="200">
@@ -1978,6 +2051,31 @@ function likeCommunityPost(postId, btn) {
     .catch(() => {
       btn.disabled = false;
     });
+}
+
+// ─── 评论点赞 ───
+function likeCommunityComment(postId, commentId, btn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  fetch(`${API_BASE}/api/community/comment/like/${postId}/${commentId}`, { method: 'POST' })
+    .then(r => {
+      if (r.status === 409) return r.json().then(d => ({ alreadyLiked: true, ...d }));
+      return r.json();
+    })
+    .then(data => {
+      if (data.ok) {
+        btn.innerHTML = `❤️${data.likes ? ' ' + data.likes : ''}`;
+        btn.classList.add('liked');
+        btn.disabled = true;
+      } else if (data.already_liked) {
+        btn.innerHTML = `❤️${data.likes ? ' ' + data.likes : ''}`;
+        btn.classList.add('liked');
+        btn.disabled = true;
+      } else {
+        btn.disabled = false;
+      }
+    })
+    .catch(() => { btn.disabled = false; });
 }
 
 async function addCommunityComment(postId) {

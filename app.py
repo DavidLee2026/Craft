@@ -14,6 +14,7 @@ import base64
 import uuid
 import random
 import re
+import time as _time_module
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
@@ -1003,9 +1004,9 @@ def _build_analyze_prompt(
     return prompt
 
 
-def _sse_event(data: dict) -> str:
-    """把 dict 序列化为一条 SSE 事件字符串（`data: {...}\\n\\n`）。"""
-    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+def _sse_event(data: dict) -> bytes:
+    """把 dict 序列化为一条 SSE 事件，直接返回 bytes。"""
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
 
 
 # 用于在流式输出中增量提取「已完成的 layer 对象」
@@ -1322,6 +1323,51 @@ def api_analyze():
     return jsonify({"record": record, "next_recommendation": next_rec, "boss_result": None})
 
 
+@app.route("/api/check-drawing", methods=["POST"])
+def api_check_drawing():
+    """快速判断上传的图片是否为手绘画作。"""
+    if "image" not in request.files:
+        return jsonify({"is_drawing": True})  # 没有图片就不拦
+
+    file = request.files["image"]
+    image_b64 = _compress_image_b64(file)
+
+    try:
+        resp = client.chat.completions.create(
+            model=ARK_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "判断这张图片是不是手绘的画作（素描/速写/涂鸦/水彩/油画等）。"
+                                "只回答一个词：drawing 或 not_drawing。"
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_b64}"
+                            },
+                        },
+                    ],
+                }
+            ],
+            max_tokens=5,
+            temperature=0,
+            extra_body={"thinking": {"type": "disabled"}},
+        )
+        answer = resp.choices[0].message.content.strip().lower()
+        is_drawing = "drawing" in answer and "not" not in answer
+        print(f"[check-drawing] AI 判定: {answer} → is_drawing={is_drawing}", flush=True)
+        return jsonify({"is_drawing": is_drawing})
+    except Exception as e:
+        print(f"[check-drawing] 检测失败: {e}，默认放行", flush=True)
+        return jsonify({"is_drawing": True})  # 检测失败就放行
+
+
 @app.route("/api/analyze/stream", methods=["POST"])
 def api_analyze_stream():
     """流式分析画作（SSE）。
@@ -1519,11 +1565,40 @@ def api_community_comment(post_id):
         "author": user_name,
         "content": content,
         "timestamp": datetime.now().isoformat(),
+        "liked_by": [],
+        "likes": 0,
     }
     post["comments"] = post.get("comments", [])
     post["comments"].append(comment)
     save_community_posts(posts)
     return jsonify({"ok": True, "comment": comment, "total": len(post["comments"])})
+
+
+@app.route("/api/community/comment/like/<post_id>/<comment_id>", methods=["POST"])
+def api_community_comment_like(post_id, comment_id):
+    """点赞社区评论（每个用户只能点一次）。"""
+    profile = load_profile()
+    user_name = profile.get("name", "小伙伴")
+
+    posts = load_community_posts()
+    post = next((p for p in posts if p.get("id") == post_id), None)
+    if not post:
+        return jsonify({"error": "找不到该帖子"}), 404
+
+    comments = post.get("comments", [])
+    comment = next((c for c in comments if c.get("id") == comment_id), None)
+    if not comment:
+        return jsonify({"error": "找不到该评论"}), 404
+
+    liked_by = comment.get("liked_by", [])
+    if user_name in liked_by:
+        return jsonify({"error": "你已经点过赞了", "already_liked": True, "likes": comment.get("likes", 0)}), 409
+
+    liked_by.append(user_name)
+    comment["liked_by"] = liked_by
+    comment["likes"] = comment.get("likes", 0) + 1
+    save_community_posts(posts)
+    return jsonify({"ok": True, "likes": comment["likes"], "already_liked": False})
 
 
 @app.route("/api/stats")
@@ -1868,7 +1943,7 @@ def api_reflection():
         return jsonify({"reply": "嗯，你说了什么吗？我好像没看到 😅"})
 
     def generate():
-        _t0 = time.time()
+        _t0 = _time_module.time()
         try:
             stream = client.chat.completions.create(
                 model=ARK_MODEL,
@@ -1885,12 +1960,14 @@ def api_reflection():
                 max_tokens=20,
                 temperature=0.8,
                 stream=True,
+                extra_body={"thinking": {"type": "disabled"}},
             )
             for chunk in stream:
                 token = chunk.choices[0].delta.content or ""
                 if token:
                     yield _sse_event({'token': token})
             elapsed = round(_time_module.time() - _t0, 1)
+            print(f"[reflection] SSE 完成，耗时 {elapsed:.1f}s", flush=True)
             yield _sse_event({'type': 'done', 'elapsed_s': elapsed})
         except Exception as e:
             yield _sse_event({'type': 'fallback', 'text': '嗯，我听到了。每次进步都值得记下来 ☺️'})
@@ -1904,24 +1981,22 @@ def api_reflection():
 
 @app.route("/api/reflection-tags", methods=["POST"])
 def api_reflection_tags():
-    """根据画作主题和 AI 反馈，生成 4 个个性化的反思快选标签。
-
-    前端反馈出现后调用，返回的标签替换默认硬编码标签，
-    让用户选的时候更有针对性（比如画杯子时出现「杯口椭圆画得好」）。
-    """
+    """根据画作主题和 AI 反馈，生成 3 个个性化的反思快选标签。"""
     data = request.get_json() or {}
     subject = (data.get("subject") or "").strip()
     feedback_snippet = (data.get("feedback_snippet") or "").strip()[:200]
 
+    print(f"[reflection-tags] 收到请求: subject='{subject}' snippet='{feedback_snippet[:50]}...'", flush=True)
     # 兜底：没有足够上下文时返回默认标签
     if not subject and not feedback_snippet:
+        print(f"[reflection-tags] ⚠ 上下文不足，返回兜底标签", flush=True)
         return jsonify({"tags": [
             {"text": "形状抓得准", "emoji": "🎯"},
             {"text": "线条更流畅", "emoji": "〰️"},
-            {"text": "整体感觉不错", "emoji": "✨"},
             {"text": "今天有感觉", "emoji": "🎨"},
         ]})
 
+    _t0 = _time_module.time()
     try:
         resp = client.chat.completions.create(
             model=ARK_MODEL,
@@ -1930,9 +2005,9 @@ def api_reflection_tags():
                     "role": "system",
                     "content": (
                         "你是一个绘画陪伴助手。用户画了一幅画，请根据画作主题和AI反馈，"
-                        "生成4个简短、具体的反思快选标签，让用户选择最满意的地方。"
+                        "生成3个简短、具体的反思快选标签，让用户选择最满意的地方。"
                         "每个标签6字以内，去掉'了''的'等虚词。\n"
-                        "格式：JSON数组，每个元素有text和emoji字段。"
+                        "格式：JSON对象，tags字段是数组，每个元素有text和emoji字段。"
                     ),
                 },
                 {
@@ -1943,12 +2018,16 @@ def api_reflection_tags():
             max_tokens=300,
             temperature=0.7,
             response_format={"type": "json_object"},
+            extra_body={"thinking": {"type": "disabled"}},
         )
         result = json.loads(resp.choices[0].message.content)
-        tags = result.get("tags", [])[:4]
+        tags = result.get("tags", [])[:3]
+        elapsed = round(_time_module.time() - _t0, 1)
+        print(f"[reflection-tags] API 完成，耗时 {elapsed:.1f}s，生成 {len(tags)} 个标签", flush=True)
         if tags and all(isinstance(t, dict) and t.get("text") for t in tags):
             return jsonify({"tags": tags})
-    except Exception:
+    except Exception as e:
+        print(f"[reflection-tags] API 失败: {e}", flush=True)
         pass
 
     # 兜底
