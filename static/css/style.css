@@ -2946,8 +2946,8 @@ body.booting::after {
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(91, 155, 91, 0.35), 0 2px 8px rgba(0,0,0,.1);
   transition: top .6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .4s ease;
-  max-width: calc(100vw - 40px);
-  width: auto;
+  max-width: calc(100vw - 24px);
+  width: calc(100vw - 24px);
   opacity: 0;
 }
 .achievement-popup.visible {

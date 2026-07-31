@@ -1900,6 +1900,64 @@ def api_reflection():
     return resp
 
 
+@app.route("/api/reflection-tags", methods=["POST"])
+def api_reflection_tags():
+    """根据画作主题和 AI 反馈，生成 4 个个性化的反思快选标签。
+
+    前端反馈出现后调用，返回的标签替换默认硬编码标签，
+    让用户选的时候更有针对性（比如画杯子时出现「杯口椭圆画得好」）。
+    """
+    data = request.get_json() or {}
+    subject = (data.get("subject") or "").strip()
+    feedback_snippet = (data.get("feedback_snippet") or "").strip()[:200]
+
+    # 兜底：没有足够上下文时返回默认标签
+    if not subject and not feedback_snippet:
+        return jsonify({"tags": [
+            {"text": "形状抓得准", "emoji": "🎯"},
+            {"text": "线条更流畅", "emoji": "〰️"},
+            {"text": "整体感觉不错", "emoji": "✨"},
+            {"text": "今天有感觉", "emoji": "🎨"},
+        ]})
+
+    try:
+        resp = client.chat.completions.create(
+            model=ARK_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "你是一个绘画陪伴助手。用户画了一幅画，请根据画作主题和AI反馈，"
+                        "生成4个简短、具体的反思快选标签，让用户选择最满意的地方。"
+                        "每个标签6字以内，去掉'了''的'等虚词。\n"
+                        "格式：JSON数组，每个元素有text和emoji字段。"
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"主题：{subject}\n反馈要点：{feedback_snippet}",
+                },
+            ],
+            max_tokens=300,
+            temperature=0.7,
+            response_format={"type": "json_object"},
+        )
+        result = json.loads(resp.choices[0].message.content)
+        tags = result.get("tags", [])[:4]
+        if tags and all(isinstance(t, dict) and t.get("text") for t in tags):
+            return jsonify({"tags": tags})
+    except Exception:
+        pass
+
+    # 兜底
+    return jsonify({"tags": [
+        {"text": "形状抓得准", "emoji": "🎯"},
+        {"text": "线条更流畅", "emoji": "〰️"},
+        {"text": "整体感觉不错", "emoji": "✨"},
+        {"text": "今天有感觉", "emoji": "🎨"},
+    ]})
+
+
 @app.route("/data/<path:filename>")
 def serve_data(filename):
     resp = send_from_directory(str(DATA_DIR), filename)

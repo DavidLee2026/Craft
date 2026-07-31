@@ -1199,10 +1199,46 @@ function ensurePostFeedbackUI(record) {
       const ra = document.getElementById('reflectionArea');
       if (ra) ra.classList.add('visible');
       resetReflectionUI();
+      // 异步加载 AI 生成的反思快选标签
+      setTimeout(() => loadReflectionTags(), 200);
     }, 1000);
   } catch (e) {
     console.error('ensurePostFeedbackUI error:', e);
   }
+}
+
+// ─── AI 生成反思快选标签 ───
+function loadReflectionTags() {
+  const subject = document.getElementById('themeTodayTitle')?.textContent || '';
+  // 从已渲染的反馈层中提取简短摘要作为 API 上下文
+  const layers = document.querySelectorAll('#fbLayersContainer .layer-text');
+  let snippet = '';
+  layers.forEach((el, i) => {
+    if (i < 3) snippet += el.textContent.slice(0, 80) + ' ';
+  });
+  snippet = snippet.trim().slice(0, 200);
+
+  fetch('/api/reflection-tags', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({subject, feedback_snippet: snippet}),
+    signal: AbortSignal.timeout(5000),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.tags || data.tags.length === 0) return;
+      const container = document.getElementById('reflectionQuickOptions');
+      if (!container) return;
+      // 保留"自己写"按钮
+      const customBtn = container.querySelector('.r-quick-custom');
+      container.innerHTML = data.tags.map(t =>
+        `<button class="r-quick-btn" onclick="selectQuickReflection(this, '${escapeHtml(t.text)}')">${t.emoji || '🏷️'} ${escapeHtml(t.text)}</button>`
+      ).join('');
+      if (customBtn) container.appendChild(customBtn);
+    })
+    .catch(() => {
+      // 静默失败，保留硬编码标签
+    });
 }
 
 // ─── 流式完成后的收尾 ───
