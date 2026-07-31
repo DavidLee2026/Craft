@@ -1868,6 +1868,7 @@ def api_reflection():
         return jsonify({"reply": "嗯，你说了什么吗？我好像没看到 😅"})
 
     def generate():
+        _t0 = time.time()
         try:
             stream = client.chat.completions.create(
                 model=ARK_MODEL,
@@ -1881,7 +1882,7 @@ def api_reflection():
                         "content": f"主题：{subject}\n用户说：「{user_text}」",
                     },
                 ],
-                max_tokens=50,
+                max_tokens=20,
                 temperature=0.8,
                 stream=True,
             )
@@ -1889,7 +1890,8 @@ def api_reflection():
                 token = chunk.choices[0].delta.content or ""
                 if token:
                     yield _sse_event({'token': token})
-            yield _sse_event({'type': 'done'})
+            elapsed = round(_time_module.time() - _t0, 1)
+            yield _sse_event({'type': 'done', 'elapsed_s': elapsed})
         except Exception as e:
             yield _sse_event({'type': 'fallback', 'text': '嗯，我听到了。每次进步都值得记下来 ☺️'})
 

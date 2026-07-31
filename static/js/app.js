@@ -1274,6 +1274,21 @@ function finalizeStreamingFeedback(completeData, receivedLayers) {
     document.getElementById('elapsedBadgeEnhanced').textContent = s < 10 ? `${s}s` : `${Math.round(s)}s`;
   }
 
+  // ── 安全兜底：确保标题恢复（防止 showSimpleWaiting 的 "AI 正在看你的画…" 未覆盖）──
+  const subEl = document.getElementById('aiSubtitleEnhanced');
+  if (subEl && subEl.textContent === 'AI 正在看你的画…') {
+    setAiSubtitle();
+  }
+  // ── 恢复预览区标签 ──
+  const tagEl = document.querySelector('.preview-confirm-tag');
+  if (tagEl && tagEl.textContent === '🔍 分析中') {
+    tagEl.textContent = '✓ 已分析';
+  }
+  const hintEl = document.querySelector('.preview-confirm-hint');
+  if (hintEl && hintEl.textContent === 'AI 正在看你的画...') {
+    hintEl.textContent = '画作已分析完成';
+  }
+
   // 里程碑卡片
   document.getElementById('milestoneSlot').innerHTML = '';
   if (completeData.milestone || record.milestone) {
@@ -1413,8 +1428,8 @@ function showSimpleWaiting() {
 }
 
 function stopSimpleWaiting() {
-  // loading 内容由后续 first_impression 或 layer 替换，此处只需清除
-  document.getElementById('fbLayersContainer').innerHTML = '';
+  // loading 内容由 SSE first_impression / layer 事件自然替换，
+  // 这里不做任何 DOM 清理。避免 finally 块误清已渲染的反馈层。
 }
 
 // ─── 5层增强反馈渲染 ───
@@ -1672,7 +1687,13 @@ function sendReflection(presetText) {
             if (!part.startsWith('data: ')) continue;
             let data;
             try { data = JSON.parse(part.slice(6)); } catch (e) { continue; }
-            if (data.type === 'done') return;
+            if (data.type === 'done') {
+              if (data.elapsed_s) {
+                const meta = replyEl.querySelector('.chat-meta.ai');
+                if (meta) meta.textContent += `  ${data.elapsed_s}s`;
+              }
+              return;
+            }
             if (data.type === 'fallback') {
               bubble.textContent = data.text;
               return;
